@@ -1,0 +1,36 @@
+/* ============================================
+   Design tokens — satu-satunya tempat untuk
+   mengubah warna di seluruh aplikasi.
+   ============================================ */
+@theme {
+  /* Brand / warna utama — maroon ala Al Faiz */
+  --color-brand-50: #fdf2f2;
+  --color-brand-100: #fbe0e0;
+  --color-brand-200: #f5c2c2;
+  --color-brand-500: #9a1f1f;
+  --color-brand-600: #7a1618;
+  --color-brand-700: #5c1012;
+
+  /* Sukses / benar / lunas / diskon */
+  --color-success-50: #f0fdf4;
+  --color-success-100: #d1fae5;
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+
+  /* Bahaya / salah / gagal */
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+
+  /* Peringatan / menunggu */
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #ffedd5;
+  --color-warning-200: #fed7aa;
+  --color-warning-600: #ea580c;
+  --color-warning-700: #c2410c;
+
+  /* Netral tambahan (info/kedaluwarsa) */
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-500: #64748b;
+}

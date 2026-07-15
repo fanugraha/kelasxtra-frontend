@@ -5,6 +5,7 @@ import { articleService } from '../../services/articleService';
 import { useAuth } from '../../context/AuthContext';
 import CategoryModal from '../../components/public/CategoryModal';
 import Footer from '../../components/layout/Footer';
+import PackageCard from '../../components/packages/PackageCard';
 
 const FAQS = [
   {
@@ -273,25 +274,16 @@ export default function Landing() {
           ) : packages.length === 0 ? (
             <p className="text-center text-neutral-500">Belum ada paket untuk kategori ini.</p>
           ) : (
-            <div className="grid md:grid-cols-3 gap-6">
-              {packages.map((pkg) => (
-                <div key={pkg.id} className="bg-white rounded-xl border border-brand-100 p-6 flex flex-col">
-                  <div className="bg-brand-600 text-white rounded-lg px-4 py-3 text-center font-semibold mb-4">
-                    {pkg.name}
-                  </div>
-                  <div className="mb-4">
-                    <span className="text-2xl font-bold text-brand-600">
-                      Rp{Number(pkg.price).toLocaleString('id-ID')}
-                    </span>
-                  </div>
-                  <p className="text-sm text-neutral-500 flex-1">{pkg.description}</p>
-                  <button
-                    onClick={() => handleBeliPaket(pkg)}
-                    className="mt-4 bg-brand-600 text-white font-semibold py-2.5 rounded-lg hover:bg-brand-700 transition"
-                  >
-                    Lihat Detail Paket
-                  </button>
-                </div>
+            <div className="grid md:grid-cols-3 gap-6 items-start">
+              {packages.map((pkg, idx) => (
+                <Reveal key={pkg.id} delay={idx * 80}>
+                  <PackageCard
+                    pkg={pkg}
+                    onOpen={() => handleBeliPaket(pkg)}
+                    popular={packages.length > 1 && idx === 1}
+                    typeBadgeLabel={pkg.type ? PACKAGE_TYPE_LABEL[pkg.type] || pkg.type : null}
+                  />
+                </Reveal>
               ))}
             </div>
           )}

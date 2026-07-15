@@ -42,7 +42,7 @@ const QUICK_ACCESS = [
 
 // TODO(API): idealnya nomor WA & jadwal CS diambil dari settings/admin panel.
 const WHATSAPP_NUMBER = '6281234567890';
-const WHATSAPP_MESSAGE = 'Halo Kelasxtra, saya mau tanya soal paket belajar.';
+const WHATSAPP_MESSAGE = 'Halo Xtracademy, saya mau tanya soal paket belajar.';
 
 // TODO(API): ganti dengan tanggal akhir promo asli dari backend (mis. field
 // `promo_ends_at` di endpoint settings/promo). Untuk sekarang: akhir minggu ini.
@@ -281,7 +281,7 @@ export default function Beranda() {
   }
 
   const referralShareHref = `https://wa.me/?text=${encodeURIComponent(
-    `Yuk belajar bareng di Kelasxtra! Pakai kode referral aku "${referralCode}" buat dapat diskon 15% di paket pertamamu 🎉`
+    `Yuk belajar bareng di Xtracademy! Pakai kode referral aku "${referralCode}" buat dapat diskon 15% di paket pertamamu 🎉`
   )}`;
 
   // ── Trending Minggu Ini ─────────────────────────────────────────────

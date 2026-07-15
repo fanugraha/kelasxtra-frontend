@@ -62,7 +62,7 @@ export default function Navbar() {
               <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
                 <span className="text-brand-600 font-bold text-sm">K</span>
               </div>
-              <span className="text-white font-bold text-lg">Kelasxtra</span>
+              <span className="text-white font-bold text-lg">Xtracademy</span>
             </div>
 
             <div className="hidden lg:flex items-center gap-1">

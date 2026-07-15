@@ -40,7 +40,7 @@ export default function ResetPassword() {
   if (!token || !email) {
     return (
       <div className="min-h-screen bg-brand-700 flex flex-col items-center justify-center px-8 py-10 text-center">
-        <span className="text-white font-bold text-2xl mb-8">Kelasxtra</span>
+        <span className="text-white font-bold text-2xl mb-8">Xtracademy</span>
         <div className="bg-brand-600 rounded-2xl px-8 py-10 max-w-md w-full">
           <h1 className="text-2xl font-bold text-white mb-3">Link Tidak Valid</h1>
           <p className="text-brand-100 mb-6">
@@ -62,7 +62,7 @@ export default function ResetPassword() {
     <div className="min-h-screen bg-brand-700 flex flex-col lg:flex-row">
       {/* Kiri: brand + tagline */}
       <div className="lg:w-1/2 flex flex-col justify-center px-8 py-10 lg:px-16">
-        <span className="text-white font-bold text-2xl mb-10">Kelasxtra</span>
+        <span className="text-white font-bold text-2xl mb-10">Xtracademy</span>
         <h1 className="text-3xl lg:text-5xl font-extrabold text-white leading-tight">
           BELAJAR TERARAH
           <br />

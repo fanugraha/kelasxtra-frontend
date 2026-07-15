@@ -10,7 +10,7 @@ export default function Footer() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 font-bold text-white">
                 K
               </div>
-              <span className="text-lg font-bold text-slate-800">Kelasxtra</span>
+              <span className="text-lg font-bold text-slate-800">Xtracademy</span>
             </div>
             <p className="mt-3 max-w-xs text-sm text-slate-500">
               Penyedia layanan bimbel online untuk persiapan SKD CPNS, kedinasan, dan tes seleksi lainnya dengan pembelajaran berkualitas.
@@ -43,7 +43,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 border-t border-slate-200 pt-6 text-center text-sm text-slate-400">
-          © {new Date().getFullYear()} Kelasxtra. Semua hak dilindungi.
+          © {new Date().getFullYear()} Xtracademy. Semua hak dilindungi.
         </div>
       </div>
     </footer>

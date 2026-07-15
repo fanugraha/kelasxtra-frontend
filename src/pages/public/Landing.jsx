@@ -224,9 +224,9 @@ export default function Landing() {
                 className="block rounded-xl border border-brand-100 overflow-hidden hover:shadow-md transition"
               >
                 <div className="h-40 bg-neutral-100">
-                  {article.thumbnail && (
+                  {article.thumbnail_url && (
                     <img
-                      src={article.thumbnail}
+                      src={article.thumbnail_url}
                       alt={article.title}
                       className="w-full h-full object-cover"
                     />

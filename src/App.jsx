@@ -7,9 +7,6 @@ import Daftar from './pages/auth/Daftar';
 import CekEmail from './pages/auth/CekEmail';
 import LupaPassword from './pages/auth/LupaPassword';
 import ResetPassword from './pages/auth/ResetPassword';
-import Landing from './pages/public/Landing';
-import ArticleList from './pages/public/ArticleList';
-import ArticleDetail from './pages/public/ArticleDetail';
 import Beranda from './pages/dashboard/Beranda';
 import Schedule from './pages/dashboard/Schedule';
 import Leaderboard from './pages/dashboard/Leaderboard';
@@ -24,13 +21,19 @@ import MyPackages from './pages/dashboard/MyPackages';
 import ClassDetail from './pages/dashboard/ClassDetail';
 import ClassList from './pages/dashboard/ClassList';
 import ExamReview from './pages/dashboard/ExamReview';
-
+import Landing from './pages/public/Landing';
+import ArticleList from './pages/public/ArticleList';
+import ArticleDetail from './pages/public/ArticleDetail';
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/artikel" element={<ArticleList />} />
+          <Route path="/artikel/:slug" element={<ArticleDetail />} />
+
           <Route path="/login" element={<Login />} />
           <Route path="/daftar" element={<Daftar />} />
           <Route path="/cek-email" element={<CekEmail />} />
@@ -53,7 +56,6 @@ function App() {
             <Route path="my-packages" element={<MyPackages />} />
             <Route path="classes/:classId" element={<ClassDetail />} />
             <Route path="classes" element={<ClassList />} />
-            <Route path="classes/:classId" element={<ClassDetail />} />
             <Route path="transactions/:transactionId" element={<TransactionStatus />} />
             <Route path="dashboard" element={<Beranda />} />
             <Route path="schedule" element={<Schedule />} />
@@ -69,10 +71,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          <Route path="/" element={<Landing />} />
-          <Route path="/artikel" element={<ArticleList />} />
-          <Route path="/artikel/:slug" element={<ArticleDetail />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

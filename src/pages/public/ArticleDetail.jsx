@@ -40,9 +40,9 @@ export default function ArticleDetail() {
           ← Kembali ke daftar artikel
         </Link>
 
-        {article.thumbnail && (
+        {article.thumbnail_url && (
           <img
-            src={article.thumbnail}
+            src={article.thumbnail_url}
             alt={article.title}
             className="w-full h-64 object-cover rounded-xl mb-6"
           />

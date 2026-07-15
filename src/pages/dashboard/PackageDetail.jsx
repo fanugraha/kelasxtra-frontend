@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, CheckCircle2, BookOpen, Clock } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, BookOpen, Clock, ShieldCheck, Zap } from 'lucide-react';
 import { packageService } from '../../services/packageService';
 import CheckoutModal from '../../components/CheckoutModal';
 
@@ -9,6 +9,13 @@ const typeLabel = {
   group: 'Kelas Group',
   reguler: 'Kelas Online',
   latihan_soal: 'Latihan Soal',
+};
+
+const ctaLabelByType = {
+  latihan_soal: 'Mulai Latihan Sekarang',
+  privat: 'Beli Sekarang, Akses Instan',
+  group: 'Beli Sekarang, Akses Instan',
+  reguler: 'Beli Sekarang, Akses Instan',
 };
 
 export default function PackageDetail() {
@@ -67,15 +74,25 @@ export default function PackageDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto p-6 animate-pulse">
-        <div className="h-4 w-32 bg-slate-200 rounded mb-6" />
+      <div className="max-w-5xl mx-auto p-6">
+        <div className="h-4 w-32 bg-slate-200 rounded mb-6 relative overflow-hidden">
+          <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+        </div>
         <div className="grid md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-4">
-            <div className="h-6 w-2/3 bg-slate-200 rounded" />
-            <div className="h-4 w-full bg-slate-200 rounded" />
-            <div className="h-4 w-5/6 bg-slate-200 rounded" />
+          <div className="md:col-span-2 space-y-4 order-2 md:order-1">
+            <div className="h-6 w-2/3 bg-slate-200 rounded relative overflow-hidden">
+              <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+            </div>
+            <div className="h-4 w-full bg-slate-200 rounded relative overflow-hidden">
+              <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+            </div>
+            <div className="h-4 w-5/6 bg-slate-200 rounded relative overflow-hidden">
+              <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+            </div>
           </div>
-          <div className="h-40 bg-slate-200 rounded-xl" />
+          <div className="h-48 bg-slate-200 rounded-xl order-1 md:order-2 relative overflow-hidden">
+            <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+          </div>
         </div>
       </div>
     );
@@ -100,60 +117,25 @@ export default function PackageDetail() {
   const hasMateri = Array.isArray(pkg.materi) && pkg.materi.length > 0;
   const hasDescription = Boolean(pkg.description);
   const hasAboutContent = hasDescription || hasFeatures || hasMateri;
+  const ctaLabel = ctaLabelByType[pkg.type] || 'Beli Sekarang';
+  const durationLabel = pkg.duration_days
+    ? `Berlaku ${pkg.duration_days} hari setelah aktivasi`
+    : 'Akses selamanya setelah aktivasi';
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
+    <div className="max-w-5xl mx-auto p-6 pb-28 md:pb-6 animate-fade-slide-up">
       <button
         onClick={() => navigate('/app/packages')}
-        className="flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6"
+        className="flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6 transition-colors"
       >
         <ChevronLeft size={16} />
-        Beli Paket
+        Kembali ke Daftar Paket
       </button>
 
       <div className="grid md:grid-cols-3 gap-8 mb-8">
-        {/* Kiri: info paket */}
-        <div className="md:col-span-2">
-          <h1 className="text-2xl font-extrabold text-slate-800 mb-3 uppercase">
-            {pkg.name}
-          </h1>
-
-          <div className="flex items-center gap-3 mb-2">
-            {hasDiscount && (
-              <span className="text-xs font-bold text-success-700 bg-success-50 border border-success-100 px-2 py-1 rounded">
-                {discountPercent}%
-              </span>
-            )}
-            {hasDiscount && (
-              <span className="text-slate-400 line-through text-sm">
-                Rp{basePrice.toLocaleString('id-ID')}
-              </span>
-            )}
-          </div>
-          <div className="text-3xl font-extrabold text-danger-600 mb-2">
-            Rp{finalPrice.toLocaleString('id-ID')}
-          </div>
-
-          <p className="flex items-center gap-1.5 text-sm text-slate-500 mb-6">
-            <Clock size={14} />
-            Berlaku {pkg.duration_days} hari setelah aktivasi
-          </p>
-
-          <button
-            onClick={() => setShowCheckout(true)}
-            className="w-full md:w-auto px-10 bg-brand-700 hover:bg-brand-800 text-white font-bold py-3 rounded-lg transition"
-          >
-            Beli Paket
-          </button>
-
-          {error && (
-            <p className="text-sm text-danger-600 mt-3">{error}</p>
-          )}
-        </div>
-
-        {/* Kanan: banner */}
-        <div>
-          <div className="rounded-xl overflow-hidden border border-slate-200">
+        {/* Banner — muncul duluan di mobile karena elemen paling menarik perhatian */}
+        <div className="order-1 md:order-2">
+          <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
             {pkg.banner_image_url ? (
               <img
                 src={pkg.banner_image_url}
@@ -161,11 +143,10 @@ export default function PackageDetail() {
                 className="w-full h-48 object-cover"
               />
             ) : (
-              <div className="w-full h-48 bg-brand-700 flex flex-col items-center justify-center text-white p-4 text-center">
-                <BookOpen size={32} className="mb-2 opacity-80" />
-                <span className="font-bold text-sm">
-                  {typeLabel[pkg.type] || pkg.type}
-                </span>
+              <div className="w-full h-48 bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 flex flex-col items-center justify-center text-white p-4 text-center relative overflow-hidden">
+                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_20%,white,transparent_50%)]" />
+                <BookOpen size={32} className="mb-2 opacity-90 relative" strokeWidth={1.5} />
+                <span className="font-bold text-sm relative">{typeLabel[pkg.type] || pkg.type}</span>
               </div>
             )}
             <div className="p-4 bg-white">
@@ -177,8 +158,53 @@ export default function PackageDetail() {
                   {pkg.materi.length} materi pembelajaran
                 </p>
               )}
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-3 pt-3 border-t border-slate-100">
+                <ShieldCheck size={14} className="text-success-600" />
+                Pembayaran aman diproses via Midtrans
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Info paket */}
+        <div className="md:col-span-2 order-2 md:order-1">
+          <h1 className="text-2xl font-extrabold text-slate-800 mb-3 uppercase">
+            {pkg.name}
+          </h1>
+
+          <div className="flex items-center gap-3 mb-2">
+            {hasDiscount && (
+              <span className="text-xs font-bold text-success-700 bg-success-50 border border-success-100 px-2 py-1 rounded animate-pop-in">
+                Hemat {discountPercent}%
+              </span>
+            )}
+            {hasDiscount && (
+              <span className="text-slate-400 line-through text-sm">
+                Rp{basePrice.toLocaleString('id-ID')}
+              </span>
+            )}
+          </div>
+          <div className="text-3xl font-extrabold bg-gradient-to-r from-danger-600 to-danger-500 bg-clip-text text-transparent mb-2">
+            Rp{finalPrice.toLocaleString('id-ID')}
+          </div>
+
+          <p className="flex items-center gap-1.5 text-sm text-slate-500 mb-6">
+            <Clock size={14} />
+            {durationLabel}
+          </p>
+
+          {/* CTA desktop — sticky bar mengambil alih di mobile */}
+          <button
+            onClick={() => setShowCheckout(true)}
+            className="hidden md:flex w-full md:w-auto items-center justify-center gap-2 px-10 bg-brand-700 hover:bg-brand-800 text-white font-bold py-3 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-brand-700/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+          >
+            <Zap size={16} />
+            {ctaLabel}
+          </button>
+
+          {error && (
+            <p className="text-sm text-danger-600 mt-3">{error}</p>
+          )}
         </div>
       </div>
 
@@ -209,7 +235,7 @@ export default function PackageDetail() {
                 {pkg.materi.map((materi, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 bg-brand-50 text-brand-700 font-medium text-sm rounded-lg px-4 py-2.5"
+                    className="flex items-center gap-2 bg-brand-50 text-brand-700 font-medium text-sm rounded-lg px-4 py-2.5 transition-colors hover:bg-brand-100"
                   >
                     <span className="text-brand-400">{i + 1}.</span>
                     {materi}
@@ -220,6 +246,23 @@ export default function PackageDetail() {
           )}
         </div>
       )}
+
+      {/* Sticky CTA — mobile only, muncul terus meski user scroll jauh */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 flex items-center gap-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] z-40">
+        <div className="flex-1 min-w-0">
+          <div className="text-[11px] text-slate-400 leading-none mb-1">Harga</div>
+          <div className="text-lg font-extrabold text-danger-600 leading-none truncate">
+            Rp{finalPrice.toLocaleString('id-ID')}
+          </div>
+        </div>
+        <button
+          onClick={() => setShowCheckout(true)}
+          className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-lg transition-all active:scale-[0.98] whitespace-nowrap"
+        >
+          <Zap size={16} />
+          {ctaLabel}
+        </button>
+      </div>
 
       {showCheckout && (
         <CheckoutModal

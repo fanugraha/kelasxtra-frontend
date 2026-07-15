@@ -44,9 +44,9 @@ export default function ArticleList() {
                 className="block rounded-xl border border-slate-100 overflow-hidden hover:shadow-md transition"
               >
                 <div className="h-40 bg-slate-100">
-                  {article.thumbnail && (
+                  {article.thumbnail_url && (
                     <img
-                      src={article.thumbnail}
+                      src={article.thumbnail_url}
                       alt={article.title}
                       className="w-full h-full object-cover"
                     />

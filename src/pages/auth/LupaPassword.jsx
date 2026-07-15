@@ -26,7 +26,7 @@ export default function LupaPassword() {
     <div className="min-h-screen bg-brand-700 flex flex-col lg:flex-row">
       {/* Kiri: brand + tagline */}
       <div className="lg:w-1/2 flex flex-col justify-center px-8 py-10 lg:px-16">
-        <span className="text-white font-bold text-2xl mb-10">Kelasxtra</span>
+        <span className="text-white font-bold text-2xl mb-10">Xtracademy</span>
         <h1 className="text-3xl lg:text-5xl font-extrabold text-white leading-tight">
           BELAJAR TERARAH
           <br />

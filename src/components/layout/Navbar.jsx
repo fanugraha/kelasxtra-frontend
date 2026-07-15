@@ -90,36 +90,46 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
-          {/* Menu desktop */}
-          <div className="hidden lg:flex items-center gap-1 h-full">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const active = item.isActive(pathname);
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  aria-current={active ? 'page' : undefined}
-                  className={`group relative flex items-center gap-2 px-4 h-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60 rounded-lg ${
-                    active ? 'text-amber-300' : 'text-white/75 hover:text-white'
-                  }`}
-                >
-                  <Icon
-                    size={16}
-                    className={`transition-transform ${
-                      active ? '' : 'group-hover:-translate-y-0.5'
+          <div className="flex items-center gap-8">
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
+                <span className="text-brand-600 font-bold text-sm">K</span>
+              </div>
+              <span className="text-white font-bold text-lg">Xtracademy</span>
+            </div>
+
+            {/* Menu desktop */}
+            <div className="hidden lg:flex items-center gap-1 h-full">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const active = item.isActive(pathname);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    aria-current={active ? 'page' : undefined}
+                    className={`group relative flex items-center gap-2 px-4 h-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60 rounded-lg ${
+                      active ? 'text-amber-300' : 'text-white/75 hover:text-white'
                     }`}
-                  />
-                  {item.label}
-                  {/* underline aktif */}
-                  <span
-                    className={`absolute left-3 right-3 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-amber-300 to-amber-500 transition-transform origin-left ${
-                      active ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-40'
-                    }`}
-                  />
-                </Link>
-              );
-            })}
+                  >
+                    <Icon
+                      size={16}
+                      className={`transition-transform ${
+                        active ? '' : 'group-hover:-translate-y-0.5'
+                      }`}
+                    />
+                    {item.label}
+                    {/* underline aktif */}
+                    <span
+                      className={`absolute left-3 right-3 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-amber-300 to-amber-500 transition-transform origin-left ${
+                        active ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-40'
+                      }`}
+                    />
+                  </Link>
+                );
+              })}
+            </div>
           </div>
 
           {/* Profil desktop */}

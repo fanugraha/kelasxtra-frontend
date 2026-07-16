@@ -84,20 +84,28 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`bg-brand-600 sticky top-0 z-30 transition-shadow duration-300 ${
-        scrolled ? 'shadow-lg shadow-black/10 backdrop-blur-sm' : ''
+      className={`sticky top-0 z-30 bg-brand-600/95 backdrop-blur-md transition-shadow duration-300 ${
+        scrolled ? 'shadow-lg shadow-black/10' : ''
       }`}
     >
+      {/* garis aksen tipis di bagian bawah navbar */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-8">
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-                <span className="text-brand-600 font-bold text-sm">K</span>
-              </div>
-              <span className="text-white font-bold text-lg">Xtracademy</span>
-            </div>
+            {/* Wordmark — tanpa kotak ikon, aksen warna jadi identitasnya */}
+            <Link
+              to="/app/dashboard"
+              className="flex items-baseline gap-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60 rounded-md"
+            >
+              <span className="text-white font-extrabold text-lg tracking-tight">
+                Xtra
+              </span>
+              <span className="text-amber-300 font-extrabold text-lg tracking-tight">
+                academy
+              </span>
+            </Link>
 
             {/* Menu desktop */}
             <div className="hidden lg:flex items-center gap-1 h-full">
@@ -139,7 +147,7 @@ export default function Navbar() {
                 onClick={() => setProfileOpen((v) => !v)}
                 className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-full hover:bg-white/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-brand-700 flex items-center justify-center text-xs font-bold">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-brand-700 flex items-center justify-center text-xs font-bold ring-2 ring-white/20">
                   {initials || '?'}
                 </div>
                 <span className="text-white text-sm font-medium max-w-[140px] truncate">
@@ -249,7 +257,7 @@ export default function Navbar() {
 
           <div className="border-t border-white/10 px-4 py-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-brand-700 flex items-center justify-center text-xs font-bold">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-brand-700 flex items-center justify-center text-xs font-bold ring-2 ring-white/20">
                 {initials || '?'}
               </div>
               <div className="min-w-0">

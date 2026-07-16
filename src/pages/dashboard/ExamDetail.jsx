@@ -1,26 +1,85 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Clock, CheckCircle2, XCircle, RotateCcw, FileSearch } from 'lucide-react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, Clock, CheckCircle2, XCircle, RotateCcw, FileSearch, X } from 'lucide-react';
 import { examService } from '../../services/examService';
 
 export default function ExamDetail() {
   const { examId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const presetBankId = searchParams.get('bank') ? Number(searchParams.get('bank')) : null;
+
+  const [examTitle, setExamTitle] = useState('');
+  const [banks, setBanks] = useState([]);
+  const [banksLoaded, setBanksLoaded] = useState(false);
+  // Bank yang AKTIF dipakai untuk fetch summary/attempts -- baik dari URL
+  // (?bank=) maupun dari pilihan siswa lewat modal. Sengaja TIDAK auto-pakai
+  // banks[0] kalau ada >1 bank, supaya data attempt tidak pernah tercampur
+  // antar-bank (bug sebelumnya: summary di-fetch dengan bank_id=null saat
+  // halaman dibuka tanpa ?bank=, sehingga backend mengembalikan attempt dari
+  // SEMUA bank sekaligus).
+  const [activeBankId, setActiveBankId] = useState(presetBankId);
 
   const [summary, setSummary] = useState(null);
   const [attempts, setAttempts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
+  const [showBankModal, setShowBankModal] = useState(false);
 
+  // Tahap 1: ambil daftar bank exam ini (selalu, supaya tahu apakah exam ini
+  // single-bank atau multi-bank) sebelum memutuskan mau fetch summary pakai
+  // bank apa.
   useEffect(() => {
+    if (presetBankId) return; // sudah tahu bank-nya dari URL, skip tahap ini
+
+    let active = true;
+    examService.getExamBanks(examId)
+      .then((data) => {
+        if (!active) return;
+        const list = data.banks || [];
+        setBanks(list);
+        setExamTitle(data.exam?.title || '');
+
+        if (list.length <= 1) {
+          // Exam lama / single-bank: aman langsung pakai bank itu (atau null
+          // kalau memang tidak ada bank sama sekali).
+          setActiveBankId(list[0]?.id ?? null);
+        } else {
+          // Multi-bank & belum ada preset -- WAJIB tanya dulu, jangan tebak.
+          setShowBankModal(true);
+        }
+      })
+      .finally(() => {
+        if (active) setBanksLoaded(true);
+      });
+
+    return () => { active = false; };
+  }, [examId, presetBankId]);
+
+  // Tahap 2: baru fetch summary & attempts SETELAH activeBankId diketahui
+  // (baik dari preset URL, dari auto-resolve single-bank, atau dari pilihan
+  // modal). Kalau exam multi-bank dan siswa belum pilih, effect ini menunggu
+  // (activeBankId masih null) -- summary tidak pernah ke-render dengan data
+  // campuran.
+  useEffect(() => {
+    const needsBankButNotChosen = !presetBankId && banks.length > 1 && activeBankId === null;
+    if (needsBankButNotChosen) {
+      setLoading(false);
+      return;
+    }
+    if (presetBankId === null && !banksLoaded && banks.length === 0) {
+      // masih menunggu tahap 1 selesai (kasus multi-bank belum kebaca)
+      return;
+    }
+
     let active = true;
     setLoading(true);
     setError('');
 
     Promise.all([
-      examService.getExamSummary(examId),
-      examService.listAttempts(examId),
+      examService.getExamSummary(examId, activeBankId),
+      examService.listAttempts(examId, activeBankId),
     ])
       .then(([summaryData, attemptsData]) => {
         if (!active) return;
@@ -35,15 +94,25 @@ export default function ExamDetail() {
       });
 
     return () => { active = false; };
-  }, [examId]);
+  }, [examId, activeBankId, presetBankId, banks.length, banksLoaded]);
 
-  async function handleStart() {
+  function handleStart() {
+    console.log('[ExamDetail] handleStart dipanggil, activeBankId =', activeBankId);
+    doStart(activeBankId);
+  }
+
+  async function doStart(bankId) {
+    console.log('[ExamDetail] doStart mulai, bankId =', bankId, 'examId =', examId);
     setStarting(true);
     setError('');
     try {
-      const attempt = await examService.startExam(examId);
+      const attempt = await examService.startExam(examId, null, bankId);
+      console.log('[ExamDetail] startExam sukses, response =', attempt);
+      console.log('[ExamDetail] mau navigate ke =', `/app/exam/${attempt.id}`);
       navigate(`/app/exam/${attempt.id}`);
     } catch (err) {
+      console.error('[ExamDetail] startExam GAGAL:', err);
+      console.error('[ExamDetail] err.response =', err.response);
       setError(err.response?.data?.message || 'Gagal memulai latihan soal.');
       setStarting(false);
     }
@@ -53,11 +122,45 @@ export default function ExamDetail() {
     navigate(`/app/exam/${summary.in_progress_attempt_id}`);
   }
 
-  if (loading) {
+  function handleBankChosen(bankId) {
+    setActiveBankId(bankId);
+    setShowBankModal(false);
+  }
+
+  const waitingForBankChoice = !presetBankId && banks.length > 1 && activeBankId === null;
+
+  if (loading && !waitingForBankChoice) {
     return (
       <div className="max-w-4xl mx-auto p-6 animate-pulse space-y-4">
         <div className="h-4 w-32 bg-slate-200 rounded" />
         <div className="h-40 bg-white rounded-xl border border-slate-200" />
+      </div>
+    );
+  }
+
+  // Multi-bank & belum pilih: jangan render summary apapun -- cuma modal
+  // pemilihan bank. Ini mencegah data attempt lintas-bank pernah tampil.
+  if (waitingForBankChoice) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6"
+        >
+          <ChevronLeft size={16} />
+          Kembali
+        </button>
+        <h1 className="text-2xl font-bold text-slate-800 mb-4">{examTitle}</h1>
+        <p className="text-slate-500 mb-4">
+          Latihan soal ini punya beberapa bagian. Pilih salah satu untuk melihat detail dan riwayat nilainya.
+        </p>
+        {showBankModal && (
+          <BankSelectModal
+            banks={banks}
+            onSelect={handleBankChosen}
+            onClose={() => navigate(-1)}
+          />
+        )}
       </div>
     );
   }
@@ -73,8 +176,6 @@ export default function ExamDetail() {
   const { exam, in_progress_attempt_id, latest_attempt } = summary;
   const hasCompletedAttempt = latest_attempt !== null;
 
-  // Selalu bandingkan 2 percobaan TERAKHIR.
-  // Attempt 1 & 2 -> banding 1 vs 2. Setelah coba lagi (jadi ada 3) -> otomatis 2 vs 3.
   const sortedAttempts = [...attempts].sort((a, b) => a.attempt_number - b.attempt_number);
   const latestAttempt = sortedAttempts[sortedAttempts.length - 1] || null;
   const previousAttempt = sortedAttempts.length > 1 ? sortedAttempts[sortedAttempts.length - 2] : null;
@@ -101,7 +202,6 @@ export default function ExamDetail() {
         <p className="text-sm text-danger-600 mb-4">{error}</p>
       )}
 
-      {/* Kondisi 1: ada attempt yang sedang berjalan */}
       {in_progress_attempt_id ? (
         <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
           <p className="text-slate-600 mb-4">
@@ -127,13 +227,11 @@ export default function ExamDetail() {
         </div>
       )}
 
-      {/* Kondisi 2: riwayat perolehan nilai — kiri tabel (stacked), kanan skor (stacked) */}
       {sortedAttempts.length > 0 && (
         <div>
           <p className="text-sm font-semibold text-slate-700 mb-3">Riwayat Perolehan Nilai</p>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-stretch">
-            {/* Baris 1: attempt terbaru — tabel & skor sejajar, tinggi sama */}
             <DetailTableCard
               label="Perolehan Nilai Terbaru"
               attempt={latestAttempt}
@@ -146,7 +244,6 @@ export default function ExamDetail() {
               onReview={() => navigate(`/app/exam-attempts/${latestAttempt.attempt_id}/review`)}
             />
 
-            {/* Baris 2: attempt sebelumnya — tabel & skor sejajar, tinggi sama */}
             {previousAttempt && (
               <>
                 <DetailTableCard
@@ -164,6 +261,36 @@ export default function ExamDetail() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function BankSelectModal({ banks, onSelect, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-sm w-full p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+        >
+          <X size={18} />
+        </button>
+        <h2 className="text-lg font-bold text-slate-800 mb-1">Pilih Bank Soal</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          Latihan soal ini punya beberapa bagian. Pilih salah satu untuk melihat detail dan riwayat nilai.
+        </p>
+        <div className="space-y-2">
+          {banks.map((bank) => (
+            <button
+              key={bank.id}
+              onClick={() => onSelect(bank.id)}
+              className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 hover:border-brand-500 hover:bg-brand-50 transition font-medium text-slate-700"
+            >
+              {bank.title}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

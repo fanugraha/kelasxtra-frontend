@@ -1,7 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, CheckCircle2, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Bookmark, TrendingUp, Sparkles } from 'lucide-react';
 import { examService } from '../../services/examService';
+
+const FILTERS = [
+  { key: 'all', label: 'Semua' },
+  { key: 'wrong', label: 'Salah' },
+  { key: 'correct', label: 'Benar' },
+  { key: 'unanswered', label: 'Kosong' },
+  { key: 'flagged', label: 'Ditandai' },
+];
+
+// renders **bold** segments as <strong> so key terms in an explanation
+// (pasal, istilah penting, dsb) stand out without touching the backend content format
+function ExplanationText({ text }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+      {parts.map((part, i) =>
+        part.startsWith('**') && part.endsWith('**') ? (
+          <strong key={i} className="font-semibold text-slate-800">
+            {part.slice(2, -2)}
+          </strong>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </p>
+  );
+}
 
 export default function ExamReview() {
   const { attemptId } = useParams();
@@ -9,8 +36,13 @@ export default function ExamReview() {
 
   const [data, setData] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [flagged, setFlagged] = useState(() => new Set());
+  const [visible, setVisible] = useState(false);
+
+  const activeBtnRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -28,8 +60,68 @@ export default function ExamReview() {
         if (active) setLoading(false);
       });
 
+    // restore flags saved locally for this attempt so "tandai untuk dipelajari ulang" persists across visits
+    try {
+      const saved = localStorage.getItem(`exam-review-flags:${attemptId}`);
+      if (saved) setFlagged(new Set(JSON.parse(saved)));
+    } catch {
+      // ignore malformed/unavailable storage
+    }
+
     return () => { active = false; };
   }, [attemptId]);
+
+  // auto-scroll the active question button into view inside the grid
+  useEffect(() => {
+    activeBtnRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex]);
+
+  // subtle fade-in on the pembahasan card whenever the active question changes,
+  // small micro-reward moment instead of content just snapping into place
+  useEffect(() => {
+    setVisible(false);
+    const t = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(t);
+  }, [activeIndex]);
+
+  const toggleFlag = (questionId) => {
+    setFlagged((prev) => {
+      const next = new Set(prev);
+      if (next.has(questionId)) next.delete(questionId);
+      else next.add(questionId);
+      try {
+        localStorage.setItem(`exam-review-flags:${attemptId}`, JSON.stringify([...next]));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  // weakest topic breakdown — only computed when questions carry a `topic` field,
+  // so this degrades gracefully for exams that don't tag topics
+  const topicInsight = useMemo(() => {
+    if (!data) return null;
+    const { questions } = data;
+    const hasTopics = questions.some((q) => q.topic);
+    if (!hasTopics) return null;
+
+    const byTopic = {};
+    questions.forEach((q) => {
+      const topic = q.topic || 'Lainnya';
+      if (!byTopic[topic]) byTopic[topic] = { wrong: 0, total: 0 };
+      byTopic[topic].total += 1;
+      if (q.selected_option_id != null && !q.is_correct) byTopic[topic].wrong += 1;
+    });
+
+    const weakest = Object.entries(byTopic)
+      .filter(([, v]) => v.wrong > 0)
+      .sort((a, b) => b[1].wrong / b[1].total - a[1].wrong / a[1].total)[0];
+
+    if (!weakest) return null;
+    const [topic, stats] = weakest;
+    return { topic, ...stats };
+  }, [data]);
 
   if (loading) {
     return (
@@ -48,11 +140,37 @@ export default function ExamReview() {
     );
   }
 
-  const { exam_title, questions } = data;
+  const { exam_title, questions, previous_correct_count } = data;
   const current = questions[activeIndex];
+  const isLastQuestion = activeIndex === questions.length - 1;
 
   const answeredCount = questions.filter((q) => q.selected_option_id != null).length;
   const correctCount = questions.filter((q) => q.is_correct).length;
+  const wrongCount = questions.filter((q) => q.selected_option_id != null && !q.is_correct).length;
+  const unansweredCount = questions.length - answeredCount;
+
+  const scoreDelta = typeof previous_correct_count === 'number' ? correctCount - previous_correct_count : null;
+
+  const filterCounts = {
+    all: questions.length,
+    wrong: wrongCount,
+    correct: correctCount,
+    unanswered: unansweredCount,
+    flagged: flagged.size,
+  };
+
+  const filteredIndices = questions
+    .map((q, i) => i)
+    .filter((i) => {
+      const q = questions[i];
+      if (filter === 'wrong') return q.selected_option_id != null && !q.is_correct;
+      if (filter === 'correct') return q.is_correct;
+      if (filter === 'unanswered') return q.selected_option_id == null;
+      if (filter === 'flagged') return flagged.has(q.question_id);
+      return true;
+    });
+
+  const goTo = (i) => setActiveIndex(Math.max(0, Math.min(questions.length - 1, i)));
 
   return (
     <div className="max-w-5xl mx-auto p-6">
@@ -64,12 +182,29 @@ export default function ExamReview() {
         {exam_title}
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
+        {/* LEFT COLUMN */}
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <p className="text-sm font-semibold text-slate-500 mb-2">
-              Soal Nomor {activeIndex + 1} ({current.type === 'pg' ? 'PG' : 'Essay'})
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold text-slate-500">
+                Soal Nomor {activeIndex + 1} ({current.type === 'pg' ? 'PG' : 'Essay'})
+              </p>
+
+              {/* flag-to-review: lets the user mark a question for restudy independent of
+                  whether they got it right, e.g. answered correctly but only guessed */}
+              <button
+                onClick={() => toggleFlag(current.question_id)}
+                className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
+                  flagged.has(current.question_id)
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                <Bookmark size={12} fill={flagged.has(current.question_id) ? 'currentColor' : 'none'} />
+                {flagged.has(current.question_id) ? 'Ditandai' : 'Tandai untuk dipelajari ulang'}
+              </button>
+            </div>
 
             {current.media_type === 'audio' && current.media_url && (
               <audio controls className="w-full mb-4">
@@ -113,16 +248,29 @@ export default function ExamReview() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <p className="font-semibold text-slate-800 mb-2">
+          {/* pembahasan card fades in on question change instead of snapping, and leads with
+              the concept explanation before the verdict badge so it reads as teaching first,
+              judging second */}
+          <div
+            className={`bg-white rounded-xl border border-slate-200 p-6 transition-opacity duration-300 ${
+              visible ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <p className="font-semibold text-slate-800 mb-3">
               Pembahasan Nomor {activeIndex + 1}
             </p>
 
-            <p className="text-sm text-slate-600 mb-3 flex items-center gap-2">
+            {current.explanation ? (
+              <ExplanationText text={current.explanation} />
+            ) : (
+              <p className="text-sm text-slate-400 italic">Pembahasan belum tersedia untuk soal ini.</p>
+            )}
+
+            <p className="text-sm text-slate-500 mt-4 pt-4 border-t border-slate-100 flex items-center gap-2">
               Jawaban kamu:{' '}
               {current.selected_option_id ? (
                 <>
-                  <span className="font-semibold">
+                  <span className="font-semibold text-slate-700">
                     {String.fromCharCode(65 + current.options.findIndex((o) => o.id === current.selected_option_id))}
                   </span>
                   <span
@@ -131,7 +279,7 @@ export default function ExamReview() {
                     }`}
                   >
                     {current.is_correct ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-                    {current.is_correct ? 'Benar' : 'Salah'}
+                    {current.is_correct ? 'Benar' : 'Perlu ditinjau lagi'}
                   </span>
                 </>
               ) : (
@@ -139,50 +287,148 @@ export default function ExamReview() {
               )}
             </p>
 
-            {current.explanation ? (
-              <p className="text-sm text-slate-600 whitespace-pre-line">{current.explanation}</p>
-            ) : (
-              <p className="text-sm text-slate-400 italic">Pembahasan belum tersedia untuk soal ini.</p>
-            )}
+            {/* prev / next navigation so users don't have to jump back to the sidebar */}
+            <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100">
+              <button
+                onClick={() => goTo(activeIndex - 1)}
+                disabled={activeIndex === 0}
+                className="flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-brand-600 disabled:opacity-30 disabled:hover:text-slate-600"
+              >
+                <ChevronLeft size={16} />
+                Sebelumnya
+              </button>
+              <button
+                onClick={() => goTo(activeIndex + 1)}
+                disabled={isLastQuestion}
+                className="flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-brand-600 disabled:opacity-30 disabled:hover:text-slate-600"
+              >
+                Berikutnya
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
+
+          {/* end-of-review CTA: keeps momentum going instead of leaving the user at a dead end
+              once they've reached the last question */}
+          {isLastQuestion && (
+            <div className="bg-brand-50 rounded-xl border border-brand-200 p-6 text-center">
+              <Sparkles className="mx-auto mb-2 text-brand-600" size={20} />
+              <p className="font-semibold text-slate-800 mb-1">Kamu sudah sampai soal terakhir</p>
+              <p className="text-sm text-slate-600 mb-4">
+                {wrongCount > 0
+                  ? `Ada ${wrongCount} soal yang masih perlu dipelajari ulang. Yuk latihan lagi supaya makin siap.`
+                  : 'Semua soal terjawab dengan benar. Lanjutkan ke paket latihan berikutnya untuk terus mengasah kemampuanmu.'}
+              </p>
+              <button className="bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-700">
+                Latihan topik yang masih lemah
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5 h-fit lg:sticky lg:top-6">
-          <div className="mb-4 pb-4 border-b border-slate-100">
+        {/* RIGHT COLUMN / SIDEBAR */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] flex flex-col">
+          {/* summary - fixed, never scrolls */}
+          <div className="mb-4 pb-4 border-b border-slate-100 shrink-0">
             <p className="text-sm font-semibold text-slate-700 mb-1">Ringkasan</p>
             <p className="text-2xl font-bold text-slate-800">
               {correctCount}<span className="text-base font-medium text-slate-400"> / {questions.length} benar</span>
             </p>
             <p className="text-xs text-slate-400 mt-0.5">{answeredCount} dari {questions.length} soal dijawab</p>
+
+            {/* progress vs previous attempt — only shows when the API provides a comparable score,
+                gives a sense of momentum rather than a bare, one-off number */}
+            {scoreDelta !== null && (
+              <p className={`text-xs mt-2 flex items-center gap-1 font-medium ${
+                scoreDelta > 0 ? 'text-success-700' : scoreDelta < 0 ? 'text-danger-600' : 'text-slate-500'
+              }`}>
+                {scoreDelta > 0 && <TrendingUp size={13} />}
+                {scoreDelta > 0
+                  ? `Naik ${scoreDelta} poin dari percobaan sebelumnya`
+                  : scoreDelta < 0
+                  ? `Turun ${Math.abs(scoreDelta)} poin dari percobaan sebelumnya`
+                  : 'Sama seperti percobaan sebelumnya'}
+              </p>
+            )}
+
+            {/* weakest-topic insight — gives direction for what to study next instead of just a score */}
+            {topicInsight && (
+              <p className="text-xs mt-2 text-slate-500">
+                Paling sering keliru di topik{' '}
+                <span className="font-semibold text-slate-700">{topicInsight.topic}</span>{' '}
+                ({topicInsight.wrong} dari {topicInsight.total} salah)
+              </p>
+            )}
           </div>
 
-          <p className="text-sm font-semibold text-slate-700 mb-3">Daftar Soal</p>
-          <div className="grid grid-cols-5 gap-2">
-            {questions.map((q, i) => {
-              const answered = q.selected_option_id != null;
-              const correct = q.is_correct;
-              const isActive = i === activeIndex;
-
-              let style = 'bg-slate-100 text-slate-500';
-              if (answered) {
-                style = correct ? 'bg-success-600 text-white' : 'bg-danger-600 text-white';
-              }
-
-              return (
-                <button
-                  key={q.question_id}
-                  onClick={() => setActiveIndex(i)}
-                  className={`h-9 rounded-lg text-sm font-semibold relative ${style} ${
-                    isActive ? 'outline outline-2 outline-offset-2 outline-brand-600' : ''
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              );
-            })}
+          {/* filter chips - fixed */}
+          <div className="flex flex-wrap gap-1.5 mb-3 shrink-0">
+            {FILTERS.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                  filter === key
+                    ? 'bg-brand-600 text-white'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                {label} <span className="opacity-70">({filterCounts[key]})</span>
+              </button>
+            ))}
           </div>
 
-          <div className="flex flex-col gap-1.5 mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
+          <p className="text-sm font-semibold text-slate-700 mb-3 shrink-0">Daftar Soal</p>
+
+          {/* only this grid scrolls, so the sidebar height stays in sync with the left column.
+              flex-1 min-h-0 is required here: without min-h-0, a flex child defaults to
+              min-height:auto and grows to fit its content instead of respecting the parent's
+              max-height, which is exactly the overflow bug from the earlier screenshot. */}
+          <div className="overflow-y-auto pr-1 -mr-1 flex-1 min-h-0">
+            {filteredIndices.length === 0 ? (
+              <p className="text-sm text-slate-400 italic py-4 text-center">
+                Tidak ada soal pada kategori ini.
+              </p>
+            ) : (
+              <div className="grid grid-cols-5 gap-2">
+                {filteredIndices.map((i) => {
+                  const q = questions[i];
+                  const answered = q.selected_option_id != null;
+                  const correct = q.is_correct;
+                  const isActive = i === activeIndex;
+                  const isFlagged = flagged.has(q.question_id);
+
+                  let style = 'bg-slate-100 text-slate-500';
+                  if (answered) {
+                    style = correct ? 'bg-success-600 text-white' : 'bg-danger-600 text-white';
+                  }
+
+                  return (
+                    <button
+                      key={q.question_id}
+                      ref={isActive ? activeBtnRef : null}
+                      onClick={() => setActiveIndex(i)}
+                      className={`h-9 rounded-lg text-sm font-semibold relative ${style} ${
+                        isActive ? 'outline outline-2 outline-offset-2 outline-brand-600' : ''
+                      }`}
+                    >
+                      {i + 1}
+                      {isFlagged && (
+                        <Bookmark
+                          size={10}
+                          fill="currentColor"
+                          className="absolute -top-1 -right-1 text-amber-500 bg-white rounded-full"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* legend - fixed, always visible */}
+          <div className="flex flex-col gap-1.5 mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500 shrink-0">
             <span className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-success-600 inline-block shrink-0" /> Jawaban benar
             </span>
@@ -194,6 +440,9 @@ export default function ExamReview() {
             </span>
             <span className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full border-2 border-brand-600 inline-block shrink-0" /> Soal yang dilihat
+            </span>
+            <span className="flex items-center gap-2">
+              <Bookmark size={12} fill="currentColor" className="text-amber-500 shrink-0" /> Ditandai untuk dipelajari ulang
             </span>
           </div>
         </div>

@@ -13,7 +13,7 @@ import { examService } from '../../services/examService';
 import { classService } from '../../services/classService';
 import { useAuth } from '../../context/AuthContext';
 import CategoryModal from '../../components/public/CategoryModal';
-
+import PackageCard from '../../components/packages/PackageCard';
 // ─────────────────────────────────────────────────────────────────────────
 // KONTEN STATIS
 // Semua konstanta di bawah ini murni tampilan/marketing (bukan hasil CRUD),
@@ -79,7 +79,7 @@ export default function Beranda() {
 
   useEffect(() => {
     const stored = localStorage.getItem('preferred_program_id');
-    if (stored) setPreferredProgramId(Number(stored));
+    if (stored && stored !== 'all') setPreferredProgramId(Number(stored));
   }, []);
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -89,6 +89,14 @@ export default function Beranda() {
   useEffect(() => {
     packageService.getPrograms().then(setPrograms).finally(() => setLoadingPrograms(false));
   }, []);
+
+  useEffect(() => {
+    if (loadingPrograms) return;
+    const stored = localStorage.getItem('preferred_program_id');
+    if (stored === null && programs.length > 0) {
+      handleSelectCategory(programs[0]);
+    }
+  }, [loadingPrograms, programs]);
 
   const [packages, setPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(true);
@@ -107,7 +115,7 @@ export default function Beranda() {
     classService
       .listClasses()
       .then((data) => setClasses(data.filter((c) => c.is_accessible)))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoadingClasses(false));
   }, []);
 
@@ -224,7 +232,7 @@ export default function Beranda() {
   }
 
   function handleShowAllCategories() {
-    localStorage.removeItem('preferred_program_id');
+    localStorage.setItem('preferred_program_id', 'all');
     setPreferredProgramId(null);
     setShowCategoryModal(false);
   }
@@ -274,7 +282,7 @@ export default function Beranda() {
   function handleCopyReferral() {
     const text = referralCode;
     if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).catch(() => {});
+      navigator.clipboard.writeText(text).catch(() => { });
     }
     setReferralCopied(true);
     setTimeout(() => setReferralCopied(false), 2000);
@@ -490,17 +498,15 @@ export default function Beranda() {
         <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
           <button
             onClick={() => setPackagesTab('rekomendasi')}
-            className={`text-sm font-semibold px-3.5 py-1.5 rounded-md transition ${
-              packagesTab === 'rekomendasi' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500'
-            }`}
+            className={`text-sm font-semibold px-3.5 py-1.5 rounded-md transition ${packagesTab === 'rekomendasi' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500'
+              }`}
           >
             {preferredProgramId === null ? 'Rekomendasi Untukmu' : 'Paket Belajar'}
           </button>
           <button
             onClick={() => setPackagesTab('trending')}
-            className={`flex items-center gap-1.5 text-sm font-semibold px-3.5 py-1.5 rounded-md transition ${
-              packagesTab === 'trending' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'
-            }`}
+            className={`flex items-center gap-1.5 text-sm font-semibold px-3.5 py-1.5 rounded-md transition ${packagesTab === 'trending' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'
+              }`}
           >
             <Flame size={13} />
             Trending
@@ -517,110 +523,55 @@ export default function Beranda() {
       {packagesError && <p className="text-sm text-danger-600 mb-4">{packagesError}</p>}
 
       {packagesTab === 'rekomendasi' ? (
-      <>
-      {loadingPackages ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse h-56" />
+        <>
+          {loadingPackages ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse h-56" />
+              ))}
+            </div>
+          ) : packages.length === 0 ? (
+            <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center mb-10">
+              <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-50 text-brand-500 mb-4">
+                <Compass size={26} strokeWidth={1.75} />
+              </span>
+              <p className="font-semibold text-slate-700 mb-1.5">Belum ada paket untuk kategori ini</p>
+              <p className="text-sm text-slate-500 max-w-sm mx-auto mb-6">
+                Tenang, kategori lain punya banyak paket menarik yang bisa kamu coba sekarang.
+              </p>
+              <div className="flex items-center justify-center gap-3 flex-wrap">
+                <button
+                  onClick={handleShowAllCategories}
+                  className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition"
+                >
+                  Lihat Semua Kategori
+                </button>
+                <button
+                  onClick={() => navigate('/app/packages')}
+                  className="bg-white border border-slate-200 hover:border-brand-300 text-slate-700 text-sm font-semibold px-4 py-2.5 rounded-lg transition"
+                >
+                  Jelajahi Semua Paket
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+          {packages.map((pkg, idx) => (
+            <PackageCard
+              key={pkg.id}
+              pkg={pkg}
+              onOpen={() => navigate(`/app/packages/${pkg.id}`)}
+              ctaLabel="Lihat Detail"
+              cornerBadge={
+                idx === 0
+                  ? { label: 'TERLARIS', icon: Star, className: 'bg-yellow-400 text-yellow-900' }
+                  : null
+              }
+            />
           ))}
         </div>
-      ) : packages.length === 0 ? (
-        <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center mb-10">
-          <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-50 text-brand-500 mb-4">
-            <Compass size={26} strokeWidth={1.75} />
-          </span>
-          <p className="font-semibold text-slate-700 mb-1.5">Belum ada paket untuk kategori ini</p>
-          <p className="text-sm text-slate-500 max-w-sm mx-auto mb-6">
-            Tenang, kategori lain punya banyak paket menarik yang bisa kamu coba sekarang.
-          </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <button
-              onClick={handleShowAllCategories}
-              className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition"
-            >
-              Lihat Semua Kategori
-            </button>
-            <button
-              onClick={() => navigate('/app/packages')}
-              className="bg-white border border-slate-200 hover:border-brand-300 text-slate-700 text-sm font-semibold px-4 py-2.5 rounded-lg transition"
-            >
-              Jelajahi Semua Paket
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-          {packages.map((pkg, idx) => {
-            const hasDiscount = pkg.discount_price && Number(pkg.discount_price) < Number(pkg.price);
-            const finalPrice = hasDiscount ? pkg.discount_price : pkg.price;
-            const discountPercent = hasDiscount
-              ? Math.round((1 - Number(pkg.discount_price) / Number(pkg.price)) * 100)
-              : 0;
-            // TODO(API): idealnya "Terlaris" berdasar field asli (mis.
-            // pkg.is_bestseller / jumlah transaksi), bukan urutan array.
-            const isBestseller = idx === 0;
-
-            return (
-              <div
-                key={pkg.id}
-                onClick={() => navigate(`/app/packages/${pkg.id}`)}
-                className="group relative bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition duration-200 cursor-pointer hover:shadow-lg hover:border-brand-200 hover:-translate-y-1"
-              >
-                {isBestseller && (
-                  <span className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-1 rounded-full transition duration-200 group-hover:scale-110">
-                    <Star size={10} fill="currentColor" />
-                    TERLARIS
-                  </span>
-                )}
-                <div className="h-24 bg-brand-600 flex items-center justify-center px-4 overflow-hidden">
-                  <p className="text-white font-bold text-center text-sm line-clamp-2 transition duration-200 group-hover:scale-105">{pkg.name}</p>
-                </div>
-                <div className="p-4 flex flex-col flex-1">
-                  <div className="flex items-start justify-between mb-1">
-                    <p className="text-xs font-semibold text-brand-600 uppercase">
-                      {pkg.program?.name || pkg.subject?.name}
-                    </p>
-                    {hasDiscount && (
-                      <span className="flex items-center gap-1 text-xs font-semibold text-success-700 bg-success-100 px-2 py-0.5 rounded-full transition duration-200 group-hover:scale-110">
-                        <Tag size={11} />
-                        {discountPercent}%
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="mb-1 mt-2">
-                    {hasDiscount && (
-                      <span className="text-xs text-slate-400 line-through mr-2">
-                        Rp{Number(pkg.price).toLocaleString('id-ID')}
-                      </span>
-                    )}
-                    <span className="text-lg font-bold text-slate-800">
-                      Rp{Number(finalPrice).toLocaleString('id-ID')}
-                    </span>
-                  </div>
-
-                  <p className="flex items-center gap-1.5 text-xs text-slate-400 mb-4">
-                    <Clock size={12} />
-                    {pkg.duration_days ? `${pkg.duration_days} hari` : 'Selamanya'}
-                  </p>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/app/packages/${pkg.id}`);
-                    }}
-                    className="mt-auto w-full flex items-center justify-center gap-2 bg-brand-600 text-white text-sm font-semibold py-2 rounded-lg transition duration-150 hover:bg-brand-700 active:scale-95"
-                  >
-                    <ShoppingBag size={14} />
-                    Lihat Detail
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      </>
+          )}
+        </>
       ) : (
         <div className="mb-10">
           {trendingPackages.length === 0 ? (
@@ -662,11 +613,10 @@ export default function Beranda() {
           <div className="flex flex-wrap gap-2.5">
             <button
               onClick={handleShowAllCategories}
-              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm font-semibold transition ${
-                preferredProgramId === null
-                  ? 'bg-brand-600 border-brand-600 text-white'
-                  : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300'
-              }`}
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm font-semibold transition ${preferredProgramId === null
+                ? 'bg-brand-600 border-brand-600 text-white'
+                : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300'
+                }`}
             >
               <Sparkles size={14} />
               Semua
@@ -675,11 +625,10 @@ export default function Beranda() {
               <button
                 key={program.id}
                 onClick={() => handleSelectCategory(program)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm font-semibold transition ${
-                  preferredProgramId === program.id
-                    ? 'bg-brand-600 border-brand-600 text-white'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300'
-                }`}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm font-semibold transition ${preferredProgramId === program.id
+                  ? 'bg-brand-600 border-brand-600 text-white'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300'
+                  }`}
               >
                 <BookOpen size={14} />
                 {program.name}
@@ -732,15 +681,13 @@ export default function Beranda() {
                   return (
                     <div
                       key={entry.id}
-                      className={`flex items-center justify-between px-4 py-3 rounded-lg ${
-                        isMe ? 'bg-brand-50 border border-brand-200' : 'hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center justify-between px-4 py-3 rounded-lg ${isMe ? 'bg-brand-50 border border-brand-200' : 'hover:bg-slate-50'
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <span
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            rankStyle[entry.rank] || 'bg-slate-100 text-slate-500'
-                          }`}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${rankStyle[entry.rank] || 'bg-slate-100 text-slate-500'
+                            }`}
                         >
                           {entry.rank <= 3 ? <Medal size={15} /> : entry.rank}
                         </span>
@@ -811,11 +758,10 @@ export default function Beranda() {
             <button
               onClick={handleJoinWaitlist}
               disabled={waitlisted}
-              className={`inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg transition ${
-                waitlisted
-                  ? 'bg-white/20 text-white cursor-default'
-                  : 'bg-white text-brand-700 hover:bg-brand-50 shadow-sm'
-              }`}
+              className={`inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg transition ${waitlisted
+                ? 'bg-white/20 text-white cursor-default'
+                : 'bg-white text-brand-700 hover:bg-brand-50 shadow-sm'
+                }`}
             >
               {waitlisted ? <BellRing size={15} /> : <Bell size={15} />}
               {waitlisted ? 'Kami akan mengingatkanmu' : 'Ingatkan Saya'}

@@ -1,16 +1,24 @@
 import api from '../lib/axios';
 
 export const examService = {
-  async startExam(examId, examBatchId = null) {
+  async startExam(examId, examBatchId = null, bankId = null) {
     const response = await api.post('/exams/start', {
       exam_id: examId,
       exam_batch_id: examBatchId,
+      bank_id: bankId,
     });
     return response.data.data;
   },
 
-  async getExamSummary(examId) {
-    const response = await api.get(`/exams/${examId}/summary`);
+  async getExamBanks(examId) {
+    const response = await api.get(`/exams/${examId}/banks`);
+    return response.data;
+  },
+
+  async getExamSummary(examId, bankId = null) {
+    const response = await api.get(`/exams/${examId}/summary`, {
+      params: bankId ? { bank_id: bankId } : {},
+    });
     return response.data;
   },
 
@@ -24,10 +32,12 @@ export const examService = {
     return response.data;
   },
 
-  async listAttempts(examId) {
-    const response = await api.get(`/exams/${examId}/attempts`);
-    return response.data;
-  },
+  async listAttempts(examId, bankId = null) {
+  const response = await api.get(`/exams/${examId}/attempts`, {
+    params: bankId ? { bank_id: bankId } : {},
+  });
+  return response.data;
+},
 
   async getAttemptReview(attemptId) {
     const response = await api.get(`/exam-attempts/${attemptId}/review`);

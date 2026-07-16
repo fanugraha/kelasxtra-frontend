@@ -66,7 +66,10 @@ export default function ExamAttempt() {
         if (data.status !== 'in_progress') {
             localStorage.removeItem(indexStorageKey);
             localStorage.removeItem(flagStorageKey);
-            navigate(`/app/exams/${data.exam_id}`, { replace: true });
+            const backUrl = data.bank_id
+                ? `/app/exams/${data.exam_id}?bank=${data.bank_id}`
+                : `/app/exams/${data.exam_id}`;
+            navigate(backUrl, { replace: true });
             return;
         }
 
@@ -163,7 +166,10 @@ export default function ExamAttempt() {
         } finally {
             localStorage.removeItem(indexStorageKey);
             localStorage.removeItem(flagStorageKey);
-            navigate(`/app/exams/${attempt.exam_id}`, { replace: true });
+            const backUrl = attempt.bank_id
+                ? `/app/exams/${attempt.exam_id}?bank=${attempt.bank_id}`
+                : `/app/exams/${attempt.exam_id}`;
+            navigate(backUrl, { replace: true });
         }
     }, [attemptId, navigate, indexStorageKey, flagStorageKey, attempt]);
 
@@ -189,7 +195,10 @@ export default function ExamAttempt() {
             await examService.finishExam(attemptId);
             localStorage.removeItem(indexStorageKey);
             localStorage.removeItem(flagStorageKey);
-            navigate(`/app/exams/${attempt.exam_id}`, { replace: true });
+            const backUrl = attempt.bank_id
+                ? `/app/exams/${attempt.exam_id}?bank=${attempt.bank_id}`
+                : `/app/exams/${attempt.exam_id}`;
+            navigate(backUrl, { replace: true });
         } catch (err) {
             setError('Gagal menyelesaikan ujian. Coba lagi.');
             setFinishing(false);
@@ -271,11 +280,10 @@ export default function ExamAttempt() {
 
                         <button
                             onClick={toggleFlag}
-                            className={`px-4 py-2.5 rounded-lg border font-medium text-sm transition ${
-                                isCurrentFlagged
-                                    ? 'border-amber-400 bg-amber-50 text-amber-700'
-                                    : 'border-slate-300 text-slate-500 hover:bg-slate-50'
-                            }`}
+                            className={`px-4 py-2.5 rounded-lg border font-medium text-sm transition ${isCurrentFlagged
+                                ? 'border-amber-400 bg-amber-50 text-amber-700'
+                                : 'border-slate-300 text-slate-500 hover:bg-slate-50'
+                                }`}
                         >
                             {isCurrentFlagged ? '★ Ditandai' : '☆ Tandai ragu-ragu'}
                         </button>

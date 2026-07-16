@@ -1,12 +1,18 @@
 import api from '../lib/axios';
 
 export const examService = {
-  async startExam(examId, examBatchId = null) {
+  async startExam(examId, examBatchId = null, bankId = null) {
     const response = await api.post('/exams/start', {
       exam_id: examId,
       exam_batch_id: examBatchId,
+      bank_id: bankId,
     });
     return response.data.data;
+  },
+
+  async getExamBanks(examId) {
+    const response = await api.get(`/exams/${examId}/banks`);
+    return response.data;
   },
 
   async getExamSummary(examId) {

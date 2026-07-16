@@ -1,32 +1,36 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  PackageSearch, Clock, GraduationCap, FileText, Video, ArrowRight,
-  RefreshCw, ShoppingBag,
-} from 'lucide-react';
+import { PackageSearch, FileText, Video, Search } from 'lucide-react';
 import { packageService } from '../../services/packageService';
+import MyPackageCard from '../../components/packages/MyPackageCard';
+import CrossSellCard from '../../components/packages/CrossSellCard';
 
+// ✅ TERVERIFIKASI 16 Juli 2026 — dicek langsung dari migration backend:
+// database/migrations/2025_01_01_000003_create_packages_table.php
+//   $table->enum('type', ['privat', 'group', 'latihan_soal', 'reguler']);
+// Kolom `type` di DB HANYA punya 4 value ini, persis dipakai semuanya di bawah — tidak ada
+// value lain (termasuk 'video', yang sudah dihapus karena tidak ada di enum sama sekali).
 const ONLINE_CLASS_TYPES = ['privat', 'group', 'reguler'];
-const NEAR_EXPIRY_DAYS = 7;
+const EXAM_TYPES = ['latihan_soal'];
 
-function getDaysLeft(endDate) {
-  if (!endDate) return null;
-  const diffMs = new Date(endDate) - new Date();
-  return Math.ceil(diffMs / 86400000);
-}
+const TABS = [
+  { key: 'tryout', label: 'Tryout', types: EXAM_TYPES },
+  { key: 'kelas_online', label: 'Kelas Online', types: ONLINE_CLASS_TYPES },
+];
+
+const KNOWN_TYPES = new Set(TABS.flatMap((tab) => tab.types));
 
 export default function MyPackages() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ── Cross-sell ───────────────────────────────────────────────────────
-  // User di halaman ini sudah terbukti mau bayar, jadi ini kesempatan
-  // bagus untuk menawarkan paket lain — bukan cuma menampilkan yang sudah
-  // dimiliki. Dipakai endpoint rekomendasi yang sama dengan Beranda/
-  // Packages, lalu paket yang sudah dimiliki disaring keluar.
   const [recommended, setRecommended] = useState([]);
   const [loadingRecommended, setLoadingRecommended] = useState(true);
+
+  const [activeTab, setActiveTab] = useState(TABS[0].key);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     packageService.listMyPackages().then(setItems).finally(() => setLoading(false));
@@ -35,13 +39,34 @@ export default function MyPackages() {
   useEffect(() => {
     packageService
       .getRecommendedPackages()
-      .then((res) => setRecommended(res.packages || []))
+      .then((res) => setRecommended(res.packages || res || []))
       .catch(() => setRecommended([]))
       .finally(() => setLoadingRecommended(false));
   }, []);
 
+  // 🔎 DEV HELPER — safety net. TABS di atas sudah dikunci persis sesuai enum kolom
+  // `type` di migration backend (packages.type), jadi seharusnya tidak akan pernah
+  // ada item yang tidak dikenali. Kalau warning ini tetap muncul, berarti enum di DB
+  // sudah berubah (migration baru) dan TABS di file ini perlu diupdate mengikuti.
+  useEffect(() => {
+    if (!items.length) return;
+    const unknown = items.filter((item) => item.package?.type && !KNOWN_TYPES.has(item.package.type));
+    if (unknown.length > 0) {
+      console.warn(
+        '[MyPackages] Ditemukan package.type di luar enum yang diketahui (privat/group/latihan_soal/reguler). ' +
+          'Kemungkinan enum di database berubah — cek migration terbaru & update TABS di MyPackages.jsx:',
+        unknown.map((item) => ({
+          my_package_id: item.id,
+          package_id: item.package?.id,
+          name: item.package?.name,
+          type: item.package?.type,
+        }))
+      );
+    }
+  }, [items]);
+
   const ownedPackageIds = useMemo(
-    () => new Set(items.map((item) => item.package_id ?? item.package?.id)),
+    () => new Set(items.map((item) => item.package?.id)),
     [items]
   );
 
@@ -50,22 +75,15 @@ export default function MyPackages() {
     [recommended, ownedPackageIds]
   );
 
-  if (loading) {
-    return (
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800 mb-6">Paket Belajar Saya</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse h-56" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Hitung jumlah item per tab, dipakai untuk badge angka di sebelah label tab
+  const tabCounts = useMemo(() => {
+    const counts = {};
+    for (const tab of TABS) {
+      counts[tab.key] = items.filter((item) => tab.types.includes(item.package?.type)).length;
+    }
+    return counts;
+  }, [items]);
 
-  // Aktif (termasuk yang hampir habis) tampil duluan, kedaluwarsa di
-  // bawahnya — supaya paket yang masih relevan/bisa dipakai lebih mudah
-  // ditemukan dulu, bukan tercampur acak sesuai urutan API.
   function sortByRelevance(list) {
     return [...list].sort((a, b) => {
       if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
@@ -75,141 +93,45 @@ export default function MyPackages() {
     });
   }
 
-  const classItems = sortByRelevance(items.filter((item) => ONLINE_CLASS_TYPES.includes(item.package?.type)));
-  const examItems = sortByRelevance(items.filter((item) => item.package?.type === 'latihan_soal'));
+  const activeTabConfig = TABS.find((tab) => tab.key === activeTab) ?? TABS[0];
+
+  const filteredItems = useMemo(() => {
+    const byTab = items.filter((item) => activeTabConfig.types.includes(item.package?.type));
+    if (!search.trim()) return byTab;
+    const q = search.trim().toLowerCase();
+    return byTab.filter((item) => item.package?.name?.toLowerCase().includes(q));
+  }, [items, activeTabConfig, search]);
+
+  const sortedFilteredItems = sortByRelevance(filteredItems);
 
   function handleClick(item) {
     if (ONLINE_CLASS_TYPES.includes(item.package?.type)) {
       const classId = item.package?.classes?.[0]?.id;
-      if (classId) {
-        navigate(`/app/classes/${classId}`);
-      }
+      if (classId) navigate(`/app/classes/${classId}`);
       return;
     }
-    navigate(`/app/packages/${item.package_id ?? item.package?.id}/exams`);
+    navigate(`/app/packages/${item.package?.id}/exams`);
   }
 
-  // Paket tidak auto-perpanjang (durasi tetap 1 tahun per pembelian), tapi
-  // user tetap bisa beli paket yang sama lagi sebagai transaksi baru.
   function handleBuyAgain(item) {
-    navigate(`/app/packages/${item.package_id ?? item.package?.id}`);
+    navigate(`/app/packages/${item.package?.id}`);
   }
 
-  function PackageCard({ item }) {
-    const isOnlineClass = ONLINE_CLASS_TYPES.includes(item.package?.type);
-    const hasClass = isOnlineClass && item.package?.classes?.length > 0;
+  function handleSearchSubmit(e) {
+    e.preventDefault();
+    setSearch(searchInput);
+  }
 
-    const daysLeft = item.end_date ? getDaysLeft(item.end_date) : null;
-    const isExpired = !item.is_active;
-    const isNearExpiry = !isExpired && daysLeft !== null && daysLeft >= 0 && daysLeft <= NEAR_EXPIRY_DAYS;
-
-    const price = item.package?.price;
-    const discountPrice = item.package?.discount_price;
-    const hasDiscount = discountPrice && Number(discountPrice) < Number(price);
-
+  if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col hover:shadow-md hover:border-brand-200 transition">
-        <div className="h-24 bg-brand-600 flex items-center justify-center px-4">
-          <p className="text-white font-bold text-center text-sm">{item.package?.name}</p>
-        </div>
-
-        <div className="p-5 flex flex-col flex-1">
-          {isExpired ? (
-            <span className="inline-flex w-fit items-center text-xs font-semibold px-2.5 py-1 rounded-full mb-3 bg-danger-100 text-danger-700">
-              Kedaluwarsa
-            </span>
-          ) : isNearExpiry ? (
-            <span className="inline-flex w-fit items-center text-xs font-semibold px-2.5 py-1 rounded-full mb-3 bg-warning-100 text-warning-700">
-              Berakhir {daysLeft <= 0 ? 'hari ini' : `${daysLeft} hari lagi`}
-            </span>
-          ) : (
-            <span className="inline-flex w-fit items-center text-xs font-semibold px-2.5 py-1 rounded-full mb-3 bg-success-100 text-success-700">
-              Aktif
-            </span>
-          )}
-
-          {item.end_date && (
-            <p className="flex items-center gap-1.5 text-xs text-slate-400 mb-5">
-              <Clock size={13} />
-              {isExpired ? 'Berakhir' : 'Berlaku sampai'} {new Date(item.end_date).toLocaleDateString('id-ID')}
-            </p>
-          )}
-
-          {isOnlineClass && !hasClass && !isExpired ? (
-            <p className="mt-auto text-xs text-slate-400 text-center py-2.5">
-              Kelas belum tersedia
-            </p>
-          ) : isExpired ? (
-            <div className="mt-auto space-y-2">
-              {price && (
-                <p className="text-xs text-slate-500">
-                  {hasDiscount && (
-                    <span className="line-through text-slate-400 mr-1.5">
-                      Rp{Number(price).toLocaleString('id-ID')}
-                    </span>
-                  )}
-                  <span className="font-semibold text-slate-700">
-                    Rp{Number(hasDiscount ? discountPrice : price).toLocaleString('id-ID')}
-                  </span>
-                </p>
-              )}
-              <button
-                onClick={() => handleBuyAgain(item)}
-                className="w-full flex items-center justify-center gap-2 bg-warning-600 text-white font-semibold py-2.5 rounded-lg hover:bg-warning-700 transition"
-              >
-                <RefreshCw size={15} />
-                Beli Lagi
-              </button>
-              {(!isOnlineClass || hasClass) && (
-                <button
-                  onClick={() => handleClick(item)}
-                  className="w-full text-xs font-medium text-slate-400 hover:text-slate-600 transition py-1"
-                >
-                  Lihat isi paket →
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="mt-auto">
-              <button
-                onClick={() => handleClick(item)}
-                className="w-full flex items-center justify-center gap-2 bg-brand-50 text-brand-700 font-semibold py-2.5 rounded-lg hover:bg-brand-100 transition"
-              >
-                {isOnlineClass ? 'Masuk Kelas' : 'Lihat Latihan Soal'}
-                <ArrowRight size={16} />
-              </button>
-            </div>
-          )}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800 mb-6">Paket Belajar Saya</h1>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 animate-pulse h-28" />
+          ))}
         </div>
       </div>
-    );
-  }
-
-  function CrossSellCard({ pkg }) {
-    const hasDiscount = pkg.discount_price && Number(pkg.discount_price) < Number(pkg.price);
-    const finalPrice = hasDiscount ? pkg.discount_price : pkg.price;
-
-    return (
-      <button
-        onClick={() => navigate(`/app/packages/${pkg.id}`)}
-        className="text-left bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 hover:border-brand-200 hover:shadow-sm transition"
-      >
-        <span className="shrink-0 w-11 h-11 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center">
-          <ShoppingBag size={18} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-slate-800 text-sm truncate">{pkg.name}</p>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {hasDiscount && (
-              <span className="line-through mr-1.5">Rp{Number(pkg.price).toLocaleString('id-ID')}</span>
-            )}
-            <span className="font-semibold text-brand-600">
-              Rp{Number(finalPrice).toLocaleString('id-ID')}
-            </span>
-          </p>
-        </div>
-        <ArrowRight size={16} className="text-slate-300 shrink-0" />
-      </button>
     );
   }
 
@@ -238,29 +160,82 @@ export default function MyPackages() {
     <div>
       <h1 className="text-2xl font-bold text-slate-800 mb-6">Paket Belajar Saya</h1>
 
-      {classItems.length > 0 && (
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <Video size={18} className="text-brand-600" />
-            <h2 className="text-lg font-bold text-slate-700">Kelas Online</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {classItems.map((item) => (
-              <PackageCard key={item.id} item={item} />
-            ))}
-          </div>
+      {/* Tab filter + search */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-6 pb-4 border-b border-slate-200">
+        <div className="flex items-center gap-6 overflow-x-auto">
+          {TABS.map((tab) => {
+            const isActive = tab.key === activeTab;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`relative pb-3 -mb-4 text-sm font-semibold whitespace-nowrap transition-colors ${
+                  isActive ? 'text-brand-600' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                {tab.label}
+                {tabCounts[tab.key] > 0 && (
+                  <span className={`ml-1.5 ${isActive ? 'text-brand-500' : 'text-slate-300'}`}>
+                    ({tabCounts[tab.key]})
+                  </span>
+                )}
+                <span
+                  className={`absolute left-0 -bottom-px h-0.5 w-full rounded-full transition-colors ${
+                    isActive ? 'bg-brand-600' : 'bg-transparent'
+                  }`}
+                />
+              </button>
+            );
+          })}
         </div>
-      )}
 
-      {examItems.length > 0 && (
+        <form onSubmit={handleSearchSubmit} className="flex-1 flex items-center gap-2 lg:justify-end">
+          <div className="relative flex-1 lg:max-w-md">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Temukan ..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-full border border-slate-200 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300 transition"
+            />
+          </div>
+          <button
+            type="submit"
+            className="shrink-0 bg-brand-600 text-white font-semibold text-sm px-6 py-2.5 rounded-full hover:bg-brand-700 transition"
+          >
+            Cari
+          </button>
+        </form>
+      </div>
+
+      {sortedFilteredItems.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200 p-10 text-center mb-10">
+          <PackageSearch className="mx-auto mb-3 text-slate-300" size={36} strokeWidth={1.5} />
+          <p className="text-slate-500">
+            {search
+              ? `Tidak ada paket "${activeTabConfig.label}" yang cocok dengan "${search}".`
+              : `Belum ada paket di kategori ${activeTabConfig.label}.`}
+          </p>
+        </div>
+      ) : (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
-            <FileText size={18} className="text-brand-600" />
-            <h2 className="text-lg font-bold text-slate-700">Latihan Soal</h2>
+            {activeTabConfig.key === 'kelas_online' ? (
+              <Video size={18} className="text-brand-600" />
+            ) : (
+              <FileText size={18} className="text-brand-600" />
+            )}
+            <h2 className="text-lg font-bold text-slate-700">{activeTabConfig.label}</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {examItems.map((item) => (
-              <PackageCard key={item.id} item={item} />
+          <div className="space-y-4">
+            {sortedFilteredItems.map((item) => (
+              <MyPackageCard
+                key={item.id}
+                item={item}
+                onOpen={() => handleClick(item)}
+                onBuyAgain={() => handleBuyAgain(item)}
+              />
             ))}
           </div>
         </div>
@@ -271,7 +246,7 @@ export default function MyPackages() {
           <h2 className="text-lg font-bold text-slate-700 mb-4">Paket Lain yang Mungkin Kamu Suka</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {crossSellPackages.map((pkg) => (
-              <CrossSellCard key={pkg.id} pkg={pkg} />
+              <CrossSellCard key={pkg.id} pkg={pkg} onSelect={() => navigate(`/app/packages/${pkg.id}`)} />
             ))}
           </div>
         </div>

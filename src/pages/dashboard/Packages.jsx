@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Tag, Clock, ShoppingBag, PackageSearch, GraduationCap, Copy, Check, Sparkles, Settings2, Gift } from 'lucide-react';
+import { Search, PackageSearch, GraduationCap, Copy, Check, Sparkles, Settings2, Gift } from 'lucide-react';
 import { packageService } from '../../services/packageService';
 import { promoService } from '../../services/promoService';
 import CategoryModal from '../../components/public/CategoryModal';
+import PackageCard from '../../components/packages/PackageCard';
 
 const TABS = [
   { key: 'latihan_soal', label: 'Latihan Soal' },
@@ -269,11 +270,10 @@ export default function Packages() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                activeTab === tab.key
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition ${activeTab === tab.key
                   ? 'bg-brand-600 text-white'
                   : 'bg-white text-slate-600 border border-slate-200 hover:border-brand-300'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -314,78 +314,15 @@ export default function Packages() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((pkg) => {
-            const hasDiscount = pkg.discount_price && Number(pkg.discount_price) < Number(pkg.price);
-            const finalPrice = hasDiscount ? pkg.discount_price : pkg.price;
-            const discountPercent = hasDiscount
-              ? Math.round((1 - Number(pkg.discount_price) / Number(pkg.price)) * 100)
-              : 0;
-            // Badge type cuma ditampilkan kalau BEDA dari tab yang sedang
-            // aktif (mis. nanti ada tab "Semua Paket") — biar tidak
-            // mengulang info yang sudah jelas dari tab yang dipilih user.
-            const showTypeBadge = !matchesTab(pkg, activeTab);
-
-            return (
-              <div
-                key={pkg.id}
-                onClick={() => navigate(`/app/packages/${pkg.id}`)}
-                className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col hover:shadow-md hover:border-brand-200 transition cursor-pointer"
-              >
-                <div className="h-24 bg-brand-600 flex items-center justify-center px-4">
-                  <p className="text-white font-bold text-center text-sm">{pkg.name}</p>
-                </div>
-
-                <div className="p-5 flex flex-col flex-1">
-                  <div className="flex items-start justify-between mb-1 gap-2">
-                    <p className="text-xs font-semibold text-brand-600 uppercase">
-                      {pkg.program?.name || pkg.subject?.name}
-                    </p>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {showTypeBadge && (
-                        <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                          {TYPE_LABEL[pkg.type] || pkg.type}
-                        </span>
-                      )}
-                      {hasDiscount && (
-                        <span className="flex items-center gap-1 text-xs font-semibold text-success-700 bg-success-100 px-2 py-0.5 rounded-full">
-                          <Tag size={11} />
-                          {discountPercent}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {pkg.description && (
-                    <p className="text-sm text-slate-500 mb-4 flex-1">{pkg.description}</p>
-                  )}
-
-                  <div className="mb-1">
-                    {hasDiscount && (
-                      <span className="text-sm text-slate-400 line-through mr-2">
-                        Rp{Number(pkg.price).toLocaleString('id-ID')}
-                      </span>
-                    )}
-                    <span className="text-xl font-bold text-slate-800">
-                      Rp{Number(finalPrice).toLocaleString('id-ID')}
-                    </span>
-                  </div>
-
-                  <p className="flex items-center gap-1.5 text-xs text-slate-400 mb-4">
-                    <Clock size={13} />
-                    Akses {pkg.duration_days ? `${pkg.duration_days} hari` : 'selamanya'}
-                  </p>
-
-                  <button
-                    onClick={() => navigate(`/app/packages/${pkg.id}`)}
-                    className="mt-auto w-full flex items-center justify-center gap-2 bg-brand-600 text-white font-semibold py-2.5 rounded-lg hover:bg-brand-700 transition"
-                  >
-                    <ShoppingBag size={16} />
-                    Lihat Detail
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {filtered.map((pkg) => (
+            <PackageCard
+              key={pkg.id}
+              pkg={pkg}
+              onOpen={() => navigate(`/app/packages/${pkg.id}`)}
+              ctaLabel="Lihat Detail"
+              typeBadgeLabel={!matchesTab(pkg, activeTab) ? (TYPE_LABEL[pkg.type] || pkg.type) : null}
+            />
+          ))}
         </div>
       )}
 

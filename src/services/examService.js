@@ -15,8 +15,15 @@ export const examService = {
     return response.data;
   },
 
+<<<<<<< HEAD
   async getExamSummary(examId) {
     const response = await api.get(`/exams/${examId}/summary`);
+=======
+  async getExamSummary(examId, bankId = null) {
+    const response = await api.get(`/exams/${examId}/summary`, {
+      params: bankId ? { bank_id: bankId } : {},
+    });
+>>>>>>> fad850eef774f391e78f77ac463dba43f40163e1
     return response.data;
   },
 
@@ -30,10 +37,12 @@ export const examService = {
     return response.data;
   },
 
-  async listAttempts(examId) {
-    const response = await api.get(`/exams/${examId}/attempts`);
-    return response.data;
-  },
+  async listAttempts(examId, bankId = null) {
+  const response = await api.get(`/exams/${examId}/attempts`, {
+    params: bankId ? { bank_id: bankId } : {},
+  });
+  return response.data;
+},
 
   async getAttemptReview(attemptId) {
     const response = await api.get(`/exam-attempts/${attemptId}/review`);

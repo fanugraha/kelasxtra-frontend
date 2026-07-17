@@ -318,9 +318,8 @@ function DetailTableCard({ label, attempt, passingScore }) {
                   <td className="py-2 text-slate-700">{s.name}</td>
                   <td className="py-2 text-right text-slate-500">{s.min_passing_score}</td>
                   <td
-                    className={`py-2 text-right font-semibold ${
-                      sectionFailed ? 'text-red-600' : 'text-emerald-600'
-                    }`}
+                    className={`py-2 text-right font-semibold ${sectionFailed ? 'text-red-600' : 'text-emerald-600'
+                      }`}
                   >
                     {s.raw_score}
                   </td>

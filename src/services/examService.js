@@ -33,11 +33,11 @@ export const examService = {
   },
 
   async listAttempts(examId, bankId = null) {
-  const response = await api.get(`/exams/${examId}/attempts`, {
-    params: bankId ? { bank_id: bankId } : {},
-  });
-  return response.data;
-},
+    const response = await api.get(`/exams/${examId}/attempts`, {
+      params: bankId ? { bank_id: bankId } : {},
+    });
+    return response.data;
+  },
 
   async getAttemptReview(attemptId) {
     const response = await api.get(`/exam-attempts/${attemptId}/review`);

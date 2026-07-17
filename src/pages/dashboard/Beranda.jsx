@@ -556,20 +556,20 @@ export default function Beranda() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-          {packages.map((pkg, idx) => (
-            <PackageCard
-              key={pkg.id}
-              pkg={pkg}
-              onOpen={() => navigate(`/app/packages/${pkg.id}`)}
-              ctaLabel="Lihat Detail"
-              cornerBadge={
-                idx === 0
-                  ? { label: 'TERLARIS', icon: Star, className: 'bg-yellow-400 text-yellow-900' }
-                  : null
-              }
-            />
-          ))}
-        </div>
+              {packages.map((pkg, idx) => (
+                <PackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpen={() => navigate(`/app/packages/${pkg.id}`)}
+                  ctaLabel="Lihat Detail"
+                  cornerBadge={
+                    idx === 0
+                      ? { label: 'TERLARIS', icon: Star, className: 'bg-yellow-400 text-yellow-900' }
+                      : null
+                  }
+                />
+              ))}
+            </div>
           )}
         </>
       ) : (

@@ -45,6 +45,19 @@ export const authService = {
     return response.data;
   },
 
+  async updateProfile(payload) {
+    // payload: { name, phone, level_pendidikan }
+    const response = await api.put('/auth/profile', payload);
+    localStorage.setItem('user', JSON.stringify(response.data));
+    return response.data;
+  },
+
+  async updatePassword(payload) {
+    // payload: { current_password, password, password_confirmation }
+    const response = await api.put('/auth/password', payload);
+    return response.data;
+  },
+
   async logout() {
     try {
       await api.post('/auth/logout');

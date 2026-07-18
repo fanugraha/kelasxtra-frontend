@@ -271,8 +271,8 @@ export default function Packages() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2 rounded-full text-sm font-semibold transition ${activeTab === tab.key
-                  ? 'bg-brand-600 text-white'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:border-brand-300'
+                ? 'bg-brand-600 text-white'
+                : 'bg-white text-slate-600 border border-slate-200 hover:border-brand-300'
                 }`}
             >
               {tab.label}

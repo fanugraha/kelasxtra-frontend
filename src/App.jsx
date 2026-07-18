@@ -8,6 +8,8 @@ import CekEmail from './pages/auth/CekEmail';
 import LupaPassword from './pages/auth/LupaPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import Beranda from './pages/dashboard/Beranda';
+import Profile from './pages/dashboard/Profile';
+import ChangePassword from './pages/dashboard/ChangePassword';
 import Schedule from './pages/dashboard/Schedule';
 import Leaderboard from './pages/dashboard/Leaderboard';
 import Transactions from './pages/dashboard/Transactions';
@@ -58,6 +60,8 @@ function App() {
             <Route path="classes" element={<ClassList />} />
             <Route path="transactions/:transactionId" element={<TransactionStatus />} />
             <Route path="dashboard" element={<Beranda />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<ChangePassword />} />
             <Route path="schedule" element={<Schedule />} />
             <Route path="leaderboard" element={<Leaderboard />} />
             <Route path="transactions" element={<Transactions />} />

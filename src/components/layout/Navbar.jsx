@@ -181,7 +181,7 @@ export default function Navbar() {
                     onClick={() => setProfileOpen(false)}
                     className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
                   >
-                    <Settings size={15} /> Pengaturan
+                    <Settings size={15} /> Ubah Password
                   </Link>
                   <div className="my-1 border-t border-neutral-100" />
                   <button

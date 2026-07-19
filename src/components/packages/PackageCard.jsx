@@ -60,7 +60,7 @@ export default function PackageCard({
   return (
     <div
       onClick={onOpen}
-      className={`group relative w-72 max-w-full mx-auto bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col cursor-pointer transition hover:shadow-md ${
+      className={`group relative w-72 max-w-full bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col cursor-pointer transition hover:shadow-md ${
         popular ? 'border-2 border-orange-300 md:scale-[1.03] shadow-lg' : 'border border-slate-200 hover:border-brand-200'
       }`}
     >

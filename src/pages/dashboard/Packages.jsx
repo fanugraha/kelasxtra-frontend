@@ -462,49 +462,6 @@ export default function Packages() {
           TWK/TIU/TKP), ditaruh sebagai jalan pintas di atas katalog utama.
           Disembunyikan total kalau tidak ada paket fokus untuk kategori
           yang sedang dipilih -- bukan nampilin section kosong. */}
-      {focusPackagesInCategory.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Latihan Fokus</h2>
-          {focusCategories.length > 1 && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              <button
-                onClick={() => setSelectedFocusCategoryId(null)}
-                className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold transition ${selectedFocusCategoryId === null
-                  ? 'bg-brand-600 border-brand-600 text-white'
-                  : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300'
-                  }`}
-              >
-                Semua
-              </button>
-              {focusCategories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedFocusCategoryId(category.id)}
-                  className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold transition ${selectedFocusCategoryId === category.id
-                    ? 'bg-brand-600 border-brand-600 text-white'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300'
-                    }`}
-                >
-                  {category.name}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
-            {visibleFocusPackages.map((pkg) => (
-              <div key={pkg.id} className="shrink-0 w-64 snap-start">
-                <PackageCard
-                  pkg={pkg}
-                  onOpen={() => navigate(`/app/packages/${pkg.id}`)}
-                  ctaLabel="Mulai Latihan"
-                  typeBadgeLabel={pkg.category ? `Fokus ${pkg.category.name}` : 'Fokus 1 Topik'}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Tab filter + search — digabung 1 baris supaya user tidak perlu
           "lompat" secara vertikal sebelum sampai ke daftar paket. */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
@@ -595,6 +552,49 @@ export default function Packages() {
               />
             );
           })}
+        </div>
+      )}
+
+      {focusPackagesInCategory.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Fokus Satu Topik</h2>
+          {focusCategories.length > 1 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              <button
+                onClick={() => setSelectedFocusCategoryId(null)}
+                className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold transition ${selectedFocusCategoryId === null
+                  ? 'bg-brand-600 border-brand-600 text-white'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300'
+                  }`}
+              >
+                Semua
+              </button>
+              {focusCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedFocusCategoryId(category.id)}
+                  className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold transition ${selectedFocusCategoryId === category.id
+                    ? 'bg-brand-600 border-brand-600 text-white'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300'
+                    }`}
+                >
+                  {category.code || category.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
+            {visibleFocusPackages.map((pkg) => (
+              <div key={pkg.id} className="shrink-0 w-64 snap-start">
+                <PackageCard
+                  pkg={pkg}
+                  onOpen={() => navigate(`/app/packages/${pkg.id}`)}
+                  ctaLabel="Mulai Latihan"
+                  typeBadgeLabel={pkg.category ? `Fokus ${pkg.category.code || pkg.category.name}` : 'Fokus 1 Topik'}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

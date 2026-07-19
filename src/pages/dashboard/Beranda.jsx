@@ -707,32 +707,6 @@ export default function Beranda() {
           untuk siswa yang sudah tahu kelemahannya (mis. lemah TWK).
           Disembunyikan total kalau tidak ada paket fokus untuk kategori
           ini -- bukan nampilin section kosong. */}
-      {availableFocusPackages.length > 0 && (
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-4 gap-3">
-            <h2 className="text-lg font-bold text-slate-800">Latihan Fokus</h2>
-            <button
-              onClick={() => navigate('/app/packages')}
-              className="shrink-0 text-sm font-semibold text-brand-600 hover:underline flex items-center gap-1"
-            >
-              Lainnya <ChevronRight size={14} />
-            </button>
-          </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
-            {availableFocusPackages.map((pkg) => (
-              <div key={pkg.id} className="shrink-0 w-64 snap-start">
-                <PackageCard
-                  pkg={pkg}
-                  onOpen={() => navigate(`/app/packages/${pkg.id}`)}
-                  ctaLabel="Mulai Latihan"
-                  typeBadgeLabel={pkg.category ? `Fokus ${pkg.category.name}` : 'Fokus 1 Topik'}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Rekomendasi / Trending — FOKUS UTAMA Beranda, diletakkan di atas
           (langsung setelah Quick Access) karena inilah yang paling
           mempermudah user untuk membeli paket. Digabung 1 section pakai
@@ -840,6 +814,32 @@ export default function Beranda() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {availableFocusPackages.length > 0 && (
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-4 gap-3">
+            <h2 className="text-lg font-bold text-slate-800">Fokus Satu Topik</h2>
+            <button
+              onClick={() => navigate('/app/packages')}
+              className="shrink-0 text-sm font-semibold text-brand-600 hover:underline flex items-center gap-1"
+            >
+              Lainnya <ChevronRight size={14} />
+            </button>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
+            {availableFocusPackages.map((pkg) => (
+              <div key={pkg.id} className="shrink-0 w-64 snap-start">
+                <PackageCard
+                  pkg={pkg}
+                  onOpen={() => navigate(`/app/packages/${pkg.id}`)}
+                  ctaLabel="Mulai Latihan"
+                  typeBadgeLabel={pkg.category ? `Fokus ${pkg.category.code || pkg.category.name}` : 'Fokus 1 Topik'}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

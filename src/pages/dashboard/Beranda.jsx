@@ -830,7 +830,7 @@ export default function Beranda() {
           </div>
           <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
             {availableFocusPackages.map((pkg) => (
-              <div key={pkg.id} className="shrink-0 w-64 snap-start">
+              <div key={pkg.id} className="shrink-0 snap-start">
                 <PackageCard
                   pkg={pkg}
                   onOpen={() => navigate(`/app/packages/${pkg.id}`)}

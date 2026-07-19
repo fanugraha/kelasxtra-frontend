@@ -13,6 +13,13 @@ export const packageService = {
         return response.data;
     },
 
+    async getFocusTopicPackages(programId = null) {
+        const response = await api.get('/packages/focus-topics', {
+            params: programId ? { program_id: programId } : {},
+        });
+        return response.data;
+    },
+
     async getPrograms() {
         const response = await api.get('/programs');
         return response.data;

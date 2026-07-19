@@ -200,6 +200,32 @@ export default function Beranda() {
     [packages, ownedPackageIds]
   );
 
+  // ── Latihan Fokus — paket yang jual 1 topik spesifik (mis. cuma TWK) ──
+  const [focusPackages, setFocusPackages] = useState([]);
+  const [loadingFocusPackages, setLoadingFocusPackages] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoadingFocusPackages(true);
+    packageService
+      .getFocusTopicPackages(preferredProgramId)
+      .then((data) => {
+        if (active) setFocusPackages(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (active) setFocusPackages([]);
+      })
+      .finally(() => {
+        if (active) setLoadingFocusPackages(false);
+      });
+    return () => { active = false; };
+  }, [preferredProgramId]);
+
+  const availableFocusPackages = useMemo(
+    () => focusPackages.filter((pkg) => !ownedPackageIds.has(pkg.id)),
+    [focusPackages, ownedPackageIds]
+  );
+
   const [classes, setClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
 
@@ -458,6 +484,7 @@ export default function Beranda() {
   const pageLoading =
     loadingPrograms ||
     loadingPackages ||
+    loadingFocusPackages ||
     loadingOwned ||
     loadingClasses ||
     loadingContinue ||
@@ -674,6 +701,37 @@ export default function Beranda() {
           `}</style>
         </div>
       ) : null}
+
+      {/* Latihan Fokus — paket yang jual 1 topik spesifik (mis. cuma TWK),
+          ditampilkan di atas Rekomendasi/Trending karena ini aksi cepat
+          untuk siswa yang sudah tahu kelemahannya (mis. lemah TWK).
+          Disembunyikan total kalau tidak ada paket fokus untuk kategori
+          ini -- bukan nampilin section kosong. */}
+      {availableFocusPackages.length > 0 && (
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-4 gap-3">
+            <h2 className="text-lg font-bold text-slate-800">Latihan Fokus</h2>
+            <button
+              onClick={() => navigate('/app/packages')}
+              className="shrink-0 text-sm font-semibold text-brand-600 hover:underline flex items-center gap-1"
+            >
+              Lainnya <ChevronRight size={14} />
+            </button>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
+            {availableFocusPackages.map((pkg) => (
+              <div key={pkg.id} className="shrink-0 w-64 snap-start">
+                <PackageCard
+                  pkg={pkg}
+                  onOpen={() => navigate(`/app/packages/${pkg.id}`)}
+                  ctaLabel="Mulai Latihan"
+                  typeBadgeLabel="Fokus 1 Topik"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Rekomendasi / Trending — FOKUS UTAMA Beranda, diletakkan di atas
           (langsung setelah Quick Access) karena inilah yang paling

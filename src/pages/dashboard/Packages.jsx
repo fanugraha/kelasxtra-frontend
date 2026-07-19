@@ -265,6 +265,8 @@ export default function Packages() {
   const [loadingOwned, setLoadingOwned] = useState(true);
   const [promos, setPromos] = useState([]);
   const [loadingPromos, setLoadingPromos] = useState(true);
+  const [focusPackages, setFocusPackages] = useState([]);
+  const [loadingFocusPackages, setLoadingFocusPackages] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
@@ -316,6 +318,15 @@ export default function Packages() {
       .catch(() => setPromos([])) // banner fallback statis kalau gagal/kosong
       .finally(() => setLoadingPromos(false));
 
+    // Paket "Fokus 1 Topik" (mis. cuma TWK) -- ditampilkan sebagai section
+    // terpisah di atas daftar utama, bukan digabung ke tab latihan_soal
+    // biasa, supaya siswa yang tahu kelemahannya bisa langsung 1 tap.
+    packageService
+      .getFocusTopicPackages()
+      .then((data) => setFocusPackages(Array.isArray(data) ? data : []))
+      .catch(() => setFocusPackages([]))
+      .finally(() => setLoadingFocusPackages(false));
+
     // Paket yang sudah dimiliki (transaksi sukses) disembunyikan dari
     // katalog "Mulai Belajar" — siswa akses paket itu lewat "Paket Saya".
     packageService
@@ -352,6 +363,16 @@ export default function Packages() {
     return availablePackages.filter((pkg) => pkg.program_id === preferredProgramId);
   }, [availablePackages, preferredProgramId]);
 
+  const availableFocusPackages = useMemo(
+    () => focusPackages.filter((pkg) => !ownedPackageIds.has(pkg.id)),
+    [focusPackages, ownedPackageIds]
+  );
+
+  const focusPackagesInCategory = useMemo(() => {
+    if (preferredProgramId === null) return availableFocusPackages;
+    return availableFocusPackages.filter((pkg) => pkg.program_id === preferredProgramId);
+  }, [availableFocusPackages, preferredProgramId]);
+
   const filtered = useMemo(() => {
     let result = packagesInCategory.filter((pkg) => matchesTab(pkg, activeTab));
 
@@ -380,7 +401,7 @@ export default function Packages() {
   // fetch ada langsung di useEffect komponen ini), jadi early return
   // biasa aman dipakai -- tidak ada risiko deadlock seperti pada
   // WeeklyLeaderboardHero di Beranda.
-  const pageLoading = loading || loadingOwned || loadingPromos || loadingPrograms;
+  const pageLoading = loading || loadingOwned || loadingPromos || loadingFocusPackages || loadingPrograms;
 
   if (pageLoading) {
     return <PackagesSkeleton />;
@@ -413,6 +434,28 @@ export default function Packages() {
       </div>
 
       <PromoBanner promos={promos} />
+
+      {/* Latihan Fokus -- paket yang jual 1 topik spesifik (mis. cuma
+          TWK/TIU/TKP), ditaruh sebagai jalan pintas di atas katalog utama.
+          Disembunyikan total kalau tidak ada paket fokus untuk kategori
+          yang sedang dipilih -- bukan nampilin section kosong. */}
+      {focusPackagesInCategory.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Latihan Fokus</h2>
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
+            {focusPackagesInCategory.map((pkg) => (
+              <div key={pkg.id} className="shrink-0 w-64 snap-start">
+                <PackageCard
+                  pkg={pkg}
+                  onOpen={() => navigate(`/app/packages/${pkg.id}`)}
+                  ctaLabel="Mulai Latihan"
+                  typeBadgeLabel="Fokus 1 Topik"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tab filter + search — digabung 1 baris supaya user tidak perlu
           "lompat" secara vertikal sebelum sampai ke daftar paket. */}

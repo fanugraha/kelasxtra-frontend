@@ -162,7 +162,7 @@ export default function Navbar() {
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white shadow-xl shadow-black/15 ring-1 ring-black/5 py-1.5 animate-fade-slide-up origin-top-right">
+                <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white shadow-xl shadow-black/15 ring-1 ring-black/5 py-1.5 overflow-hidden animate-fade-slide-up origin-top-right">
                   <div className="px-3.5 py-2.5 border-b border-neutral-100">
                     <p className="text-sm font-semibold text-brand-700 truncate">
                       {user?.name}
@@ -179,7 +179,7 @@ export default function Navbar() {
                   <Link
                     to="/app/settings"
                     onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-3.5s py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                    className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
                   >
                     <Settings size={15} /> Ubah Password
                   </Link>

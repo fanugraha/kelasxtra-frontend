@@ -59,9 +59,10 @@ export default function ArticleDetail() {
           </p>
         )}
 
-        <div className="prose max-w-none text-slate-700 whitespace-pre-line">
-          {article.content}
-        </div>
+        <div
+          className="prose max-w-none text-slate-700"
+          dangerouslySetInnerHTML={{ __html: article.content }}
+        />
       </div>
     </div>
   );

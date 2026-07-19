@@ -1,9 +1,8 @@
 import api from '../lib/axios';
 
-// NOTE: backend belum punya endpoint publik untuk listing promo aktif
-// (yang ada baru POST /promos/validate). Perlu ditambah route baru,
-// misalnya GET /promos/active yang mengembalikan promo dengan
-// valid_until >= hari ini.
+// GET /promos/active — sudah ada di backend (PromoController::active,
+// terdaftar di routes/api.php). Mengembalikan promo dengan valid_until
+// >= hari ini, diurutkan dari yang paling cepat berakhir.
 export const promoService = {
     async listActive() {
         const response = await api.get('/promos/active');

@@ -3,6 +3,30 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Clock, CheckCircle2, XCircle, RotateCcw, FileSearch, X } from 'lucide-react';
 import { examService } from '../../services/examService';
 
+function ExamDetailSkeleton() {
+  return (
+    <div className="max-w-4xl mx-auto p-6 animate-pulse">
+      <div className="flex items-center gap-1 mb-6">
+        <ChevronLeft size={16} className="text-slate-200" />
+        <div className="h-4 w-20 bg-slate-100 rounded" />
+      </div>
+
+      <div className="h-7 w-2/3 bg-slate-100 rounded mb-2" />
+      <div className="h-4 w-40 bg-slate-100 rounded mb-6" />
+
+      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+        <div className="h-10 w-40 bg-slate-100 rounded-lg" />
+      </div>
+
+      <div className="h-4 w-48 bg-slate-100 rounded mb-3" />
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-stretch">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 h-40" />
+        <div className="bg-slate-100 rounded-xl h-40" />
+      </div>
+    </div>
+  );
+}
+
 export default function ExamDetail() {
   const { examId } = useParams();
   const navigate = useNavigate();
@@ -130,12 +154,7 @@ export default function ExamDetail() {
   const waitingForBankChoice = !presetBankId && banks.length > 1 && activeBankId === null;
 
   if (loading && !waitingForBankChoice) {
-    return (
-      <div className="max-w-4xl mx-auto p-6 animate-pulse space-y-4">
-        <div className="h-4 w-32 bg-slate-200 rounded" />
-        <div className="h-40 bg-white rounded-xl border border-slate-200" />
-      </div>
-    );
+    return <ExamDetailSkeleton />;
   }
 
   // Multi-bank & belum pilih: jangan render summary apapun -- cuma modal

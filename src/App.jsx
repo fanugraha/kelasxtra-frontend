@@ -16,6 +16,7 @@ import Transactions from './pages/dashboard/Transactions';
 import ExamAttempt from './pages/dashboard/ExamAttempt';
 import ExamDetail from './pages/dashboard/ExamDetail';
 import Packages from './pages/dashboard/Packages';
+import PromoList from './pages/dashboard/PromoList';
 import PackageDetail from './pages/dashboard/PackageDetail';
 import PackageExams from './pages/dashboard/PackageExams';
 import TransactionStatus from './pages/dashboard/TransactionStatus';
@@ -51,6 +52,7 @@ function App() {
             }
           >
             <Route path="packages" element={<Packages />} />
+            <Route path="promos" element={<PromoList />} />
             <Route path="packages/:packageId" element={<PackageDetail />} />
             <Route path="packages/:packageId/exams" element={<PackageExams />} />
             <Route path="exams/:examId" element={<ExamDetail />} />

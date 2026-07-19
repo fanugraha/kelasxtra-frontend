@@ -8,6 +8,20 @@ const statusLabel = {
   graded: 'Selesai Dinilai',
 };
 
+function ExamResultSkeleton() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
+      <div className="bg-white rounded-2xl shadow-md p-10 max-w-md w-full text-center animate-pulse">
+        <div className="h-3.5 w-40 bg-neutral-100 rounded mx-auto mb-4" />
+        <div className="h-12 w-24 bg-neutral-100 rounded mx-auto mb-3" />
+        <div className="h-3.5 w-56 bg-neutral-100 rounded mx-auto mb-6" />
+        <div className="h-7 w-28 bg-neutral-100 rounded-full mx-auto" />
+        <div className="h-10 w-full bg-neutral-100 rounded-lg mt-8" />
+      </div>
+    </div>
+  );
+}
+
 export default function ExamResult() {
   const { attemptId } = useParams();
   const navigate = useNavigate();
@@ -24,11 +38,7 @@ export default function ExamResult() {
   }, [attemptId]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-500">Memuat hasil...</p>
-      </div>
-    );
+    return <ExamResultSkeleton />;
   }
 
   if (error || !attempt) {

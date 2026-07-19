@@ -30,6 +30,66 @@ function ExplanationText({ text }) {
   );
 }
 
+function ExamReviewSkeleton() {
+  return (
+    <div className="max-w-5xl mx-auto p-6 animate-pulse">
+      <div className="flex items-center gap-1 mb-4">
+        <ChevronLeft size={16} className="text-slate-200" />
+        <div className="h-4 w-40 bg-slate-100 rounded" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
+        {/* LEFT COLUMN */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="h-4 w-32 bg-slate-100 rounded" />
+              <div className="h-6 w-24 bg-slate-100 rounded-full" />
+            </div>
+            <div className="h-4 w-full bg-slate-100 rounded mb-2" />
+            <div className="h-4 w-2/3 bg-slate-100 rounded mb-5" />
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-12 rounded-lg bg-slate-100" />
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="h-4 w-40 bg-slate-100 rounded mb-4" />
+            <div className="h-3 w-full bg-slate-100 rounded mb-2" />
+            <div className="h-3 w-full bg-slate-100 rounded mb-2" />
+            <div className="h-3 w-3/4 bg-slate-100 rounded mb-5" />
+            <div className="h-4 w-48 bg-slate-100 rounded mt-4 pt-4 border-t border-slate-100" />
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN / SIDEBAR */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <div className="mb-4 pb-4 border-b border-slate-100">
+            <div className="h-4 w-24 bg-slate-100 rounded mb-2" />
+            <div className="h-7 w-32 bg-slate-100 rounded mb-2" />
+            <div className="h-3 w-40 bg-slate-100 rounded" />
+          </div>
+
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-6 w-16 bg-slate-100 rounded-full" />
+            ))}
+          </div>
+
+          <div className="h-4 w-24 bg-slate-100 rounded mb-3" />
+          <div className="grid grid-cols-5 gap-2">
+            {Array.from({ length: 15 }).map((_, i) => (
+              <div key={i} className="h-9 rounded-lg bg-slate-100" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ExamReview() {
   const { attemptId } = useParams();
   const navigate = useNavigate();
@@ -124,12 +184,7 @@ export default function ExamReview() {
   }, [data]);
 
   if (loading) {
-    return (
-      <div className="max-w-5xl mx-auto p-6 animate-pulse space-y-4">
-        <div className="h-4 w-32 bg-slate-200 rounded" />
-        <div className="h-64 bg-white rounded-xl border border-slate-200" />
-      </div>
-    );
+    return <ExamReviewSkeleton />;
   }
 
   if (error || !data) {

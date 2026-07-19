@@ -6,6 +6,49 @@ import { examService } from '../../services/examService';
 import ExamCard from '../../components/exam/ExamCard';
 import PackageHero from '../../components/exam/PackageHero';
 
+function ExamCardSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl border border-neutral-100 p-5 animate-pulse">
+      <div className="h-5 w-3/4 bg-neutral-100 rounded mb-3" />
+      <div className="h-3 w-1/2 bg-neutral-100 rounded mb-5" />
+      <div className="flex gap-4 mb-5">
+        <div className="h-3 w-16 bg-neutral-100 rounded" />
+        <div className="h-3 w-16 bg-neutral-100 rounded" />
+      </div>
+      <div className="h-9 w-full bg-neutral-100 rounded-lg" />
+    </div>
+  );
+}
+
+function PackageExamsSkeleton() {
+  return (
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="flex items-center gap-1 mb-6">
+        <ChevronLeft size={16} className="text-neutral-200" />
+        <div className="h-4 w-32 bg-neutral-100 rounded animate-pulse" />
+      </div>
+
+      {/* Placeholder mengikuti bentuk PackageHero */}
+      <div className="bg-white rounded-2xl border border-neutral-100 p-6 mb-6 animate-pulse">
+        <div className="h-6 w-2/3 bg-neutral-100 rounded mb-3" />
+        <div className="h-4 w-1/3 bg-neutral-100 rounded mb-5" />
+        <div className="flex gap-6">
+          <div className="h-4 w-24 bg-neutral-100 rounded" />
+          <div className="h-4 w-24 bg-neutral-100 rounded" />
+        </div>
+      </div>
+
+      <div className="h-6 w-40 bg-neutral-100 rounded mb-4 animate-pulse" />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {[1, 2, 3].map((i) => (
+          <ExamCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function PackageExams() {
   const { packageId } = useParams();
   const navigate = useNavigate();
@@ -46,6 +89,9 @@ export default function PackageExams() {
 
   // Cek status pengerjaan tiap card (exam+bank), supaya tombol bisa
   // menyesuaikan: "Buka Paket" vs "Lanjutkan" per-card.
+  // Ini tetap async terpisah setelah loading utama selesai (tidak menggerbang
+  // seluruh halaman) karena summary cuma memengaruhi tombol per-card, bukan
+  // struktur halaman -- ExamCard sendiri yang menangani status "memuat status".
   useEffect(() => {
     if (exams.length === 0) return;
     let active = true;
@@ -71,18 +117,7 @@ export default function PackageExams() {
   const totalDuration = exams.reduce((sum, e) => sum + (e.duration_minutes || 0), 0);
 
   if (loading) {
-    return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="h-4 w-32 bg-neutral-100 rounded mb-6 animate-pulse" />
-        <div className="h-4 w-48 bg-neutral-100 rounded mb-6 animate-pulse" />
-        <div className="h-20 bg-white rounded-2xl border border-neutral-100 mb-6 animate-pulse" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-72 bg-white rounded-2xl border border-neutral-100 animate-pulse" />
-          ))}
-        </div>
-      </div>
-    );
+    return <PackageExamsSkeleton />;
   }
 
   return (

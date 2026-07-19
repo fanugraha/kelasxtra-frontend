@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, PackageSearch, GraduationCap, Copy, Check, Sparkles, Settings2, Gift } from 'lucide-react';
+import { Search, PackageSearch, Copy, Check, Sparkles, Settings2, Gift } from 'lucide-react';
 import { packageService } from '../../services/packageService';
 import { promoService } from '../../services/promoService';
 import CategoryModal from '../../components/public/CategoryModal';
@@ -43,6 +43,62 @@ function useDebouncedValue(value, delayMs) {
 // lebih tenang (hanya gradient flow, tanpa blob/shimmer/pulse) karena di
 // halaman ini promo bukan elemen hero utama — fokus utama tetap daftar
 // paket di bawahnya.
+// Card promo ringkas — dipakai saat promo aktif ada 2 atau lebih, supaya
+// semua promo kelihatan (bukan cuma promos[0] seperti banner tunggal).
+// Sengaja lebih ringkas dari banner besar: judul, diskon, kode+salin,
+// tanggal berakhir saja — tanpa deskripsi panjang, karena beberapa card
+// ini akan berdampingan sekaligus di layar yang sama.
+function PromoCard({ promo }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(promo.code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  const discountLabel =
+    promo.discount_type === 'percentage'
+      ? `${Number(promo.discount_value)}%`
+      : `Rp${Number(promo.discount_value).toLocaleString('id-ID')}`;
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-xl px-4 py-4 shrink-0 w-64 sm:w-72 bg-[length:200%_200%] animate-[promoFlow_10s_ease_infinite]"
+      style={{
+        backgroundImage: 'linear-gradient(120deg, #f97316 0%, #ef4444 35%, #dc2626 65%, #f97316 100%)',
+      }}
+    >
+      <span className="inline-flex items-center gap-1 bg-white/20 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full mb-2">
+        <Sparkles size={11} />
+        Promo Aktif
+      </span>
+      <h3 className="text-white text-sm font-bold leading-snug line-clamp-2 mb-1.5" title={promo.title}>
+        {promo.title}
+      </h3>
+      <p className="text-white/90 text-xs font-semibold mb-3">
+        Diskon {discountLabel} · s.d.{' '}
+        {new Date(promo.valid_until).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+      </p>
+      <button
+        onClick={handleCopy}
+        className="w-full flex items-center justify-center gap-1.5 bg-white text-orange-600 font-bold text-xs px-3 py-2 rounded-lg hover:bg-orange-50 transition border-2 border-dashed border-orange-200"
+      >
+        {copied ? <Check size={13} /> : <Copy size={13} />}
+        {copied ? 'Disalin!' : promo.code}
+      </button>
+      <style>{`
+        @keyframes promoFlow {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 function PromoBanner({ promos }) {
   const [copiedCode, setCopiedCode] = useState('');
 
@@ -56,6 +112,24 @@ function PromoBanner({ promos }) {
   const gradientStyle = {
     backgroundImage: 'linear-gradient(120deg, #f97316 0%, #ef4444 35%, #dc2626 65%, #f97316 100%)',
   };
+
+  // 2+ promo aktif: strip horizontal berisi semua promo, bukan cuma
+  // promos[0] — supaya tidak ada promo yang "hilang" dari pandangan user.
+  if (promos && promos.length >= 2) {
+    return (
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles size={16} className="text-orange-500" />
+          <h2 className="text-sm font-bold text-slate-700">{promos.length} Promo Sedang Berlangsung</h2>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+          {promos.map((promo) => (
+            <PromoCard key={promo.id} promo={promo} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!promos || promos.length === 0) {
     // Fallback: banner statis, tetap informatif tanpa klaim promo palsu.
@@ -140,10 +214,57 @@ function PromoBanner({ promos }) {
   );
 }
 
+// Full-page skeleton -- meniru struktur SELURUH halaman (header + tombol
+// Ganti Kategori, promo banner, baris tab+search, judul section, grid
+// card) supaya semua bagian tampil bareng dalam satu proses loading.
+// PENTING: skeleton ini sudah mencakup header-nya sendiri -- jangan
+// render judul "Mulai Belajar" yang hardcode di LUAR komponen ini saat
+// loading, karena itu bikin judul asli nongol duluan sementara sisanya
+// masih skeleton (persis masalah yang diperbaiki di PromoList).
+function PackagesSkeleton() {
+  return (
+    <div className="animate-pulse">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <div className="h-7 w-40 bg-slate-200 rounded mb-2" />
+          <div className="h-4 w-72 max-w-full bg-slate-200 rounded" />
+        </div>
+        <div className="h-9 w-36 bg-slate-200 rounded-lg shrink-0" />
+      </div>
+
+      {/* Promo banner */}
+      <div className="rounded-2xl bg-slate-200 h-40 mb-6" />
+
+      {/* Tab filter + search */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div className="flex flex-wrap gap-2">
+          <div className="h-9 w-32 bg-slate-200 rounded-full" />
+          <div className="h-9 w-32 bg-slate-200 rounded-full" />
+        </div>
+        <div className="h-10 w-full sm:w-96 bg-slate-200 rounded-lg" />
+      </div>
+
+      {/* Judul section */}
+      <div className="h-5 w-32 bg-slate-200 rounded mb-4" />
+
+      {/* Grid paket */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 h-56" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Packages() {
   const navigate = useNavigate();
   const [packages, setPackages] = useState([]);
+  const [ownedPackageIds, setOwnedPackageIds] = useState(new Set());
+  const [loadingOwned, setLoadingOwned] = useState(true);
   const [promos, setPromos] = useState([]);
+  const [loadingPromos, setLoadingPromos] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
@@ -158,12 +279,27 @@ export default function Packages() {
 
   useEffect(() => {
     const stored = localStorage.getItem('preferred_program_id');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored) setPreferredProgramId(Number(stored));
   }, []);
 
   useEffect(() => {
     packageService.getPrograms().then(setPrograms).finally(() => setLoadingPrograms(false));
   }, []);
+
+  // Kalau kategori tersimpan di localStorage ternyata sudah tidak ada
+  // lagi di daftar program (dihapus admin, data testing berubah, dll),
+  // reset otomatis ke "tampilkan semua" daripada diam-diam menyaring
+  // semua paket jadi kosong tanpa penjelasan.
+  useEffect(() => {
+    if (loadingPrograms || preferredProgramId === null) return;
+    const stillExists = programs.some((p) => p.id === preferredProgramId);
+    if (!stillExists) {
+      localStorage.removeItem('preferred_program_id');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPreferredProgramId(null);
+    }
+  }, [loadingPrograms, programs, preferredProgramId]);
 
   const debouncedQuery = useDebouncedValue(query, 250);
 
@@ -177,7 +313,16 @@ export default function Packages() {
     promoService
       .listActive()
       .then(setPromos)
-      .catch(() => setPromos([])); // banner fallback statis kalau gagal/kosong
+      .catch(() => setPromos([])) // banner fallback statis kalau gagal/kosong
+      .finally(() => setLoadingPromos(false));
+
+    // Paket yang sudah dimiliki (transaksi sukses) disembunyikan dari
+    // katalog "Mulai Belajar" — siswa akses paket itu lewat "Paket Saya".
+    packageService
+      .listMyPackages()
+      .then((owned) => setOwnedPackageIds(new Set(owned.map((o) => o.package.id))))
+      .catch(() => setOwnedPackageIds(new Set())) // gagal diam-diam, jangan blokir katalog
+      .finally(() => setLoadingOwned(false));
   }, []);
 
   function handleSelectCategory(program) {
@@ -197,12 +342,18 @@ export default function Packages() {
     [programs, preferredProgramId]
   );
 
-  const filtered = useMemo(() => {
-    let result = packages.filter((pkg) => matchesTab(pkg, activeTab));
+  const availablePackages = useMemo(
+    () => packages.filter((pkg) => !ownedPackageIds.has(pkg.id)),
+    [packages, ownedPackageIds]
+  );
 
-    if (preferredProgramId !== null) {
-      result = result.filter((pkg) => pkg.program_id === preferredProgramId);
-    }
+  const packagesInCategory = useMemo(() => {
+    if (preferredProgramId === null) return availablePackages;
+    return availablePackages.filter((pkg) => pkg.program_id === preferredProgramId);
+  }, [availablePackages, preferredProgramId]);
+
+  const filtered = useMemo(() => {
+    let result = packagesInCategory.filter((pkg) => matchesTab(pkg, activeTab));
 
     const q = debouncedQuery.trim().toLowerCase();
     if (q) {
@@ -216,22 +367,23 @@ export default function Packages() {
     }
 
     return result;
-  }, [packages, debouncedQuery, activeTab, preferredProgramId]);
+  }, [packagesInCategory, debouncedQuery, activeTab]);
 
   const isSearching = query !== debouncedQuery;
 
-  if (loading) {
-    return (
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800 mb-6">Mulai Belajar</h1>
-        <div className="rounded-2xl bg-slate-200 animate-pulse h-40 mb-6" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse h-56" />
-          ))}
-        </div>
-      </div>
-    );
+  // Full-page skeleton: tunggu SEMUA data utama halaman ini siap
+  // (paket, kepemilikan paket, promo, dan daftar kategori/program)
+  // sebelum merender apa pun -- konsisten dengan pola yang sama di
+  // Beranda, supaya loading terasa sebagai satu proses yang mulus,
+  // bukan section-section yang muncul gantian tidak sinkron. Tidak ada
+  // komponen anak di halaman ini yang fetch datanya sendiri (semua
+  // fetch ada langsung di useEffect komponen ini), jadi early return
+  // biasa aman dipakai -- tidak ada risiko deadlock seperti pada
+  // WeeklyLeaderboardHero di Beranda.
+  const pageLoading = loading || loadingOwned || loadingPromos || loadingPrograms;
+
+  if (pageLoading) {
+    return <PackagesSkeleton />;
   }
 
   const activeTabLabel = TABS.find((t) => t.key === activeTab)?.label || '';
@@ -266,21 +418,32 @@ export default function Packages() {
           "lompat" secara vertikal sebelum sampai ke daftar paket. */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
         <div className="flex flex-wrap gap-2">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition ${activeTab === tab.key
-                ? 'bg-brand-600 text-white'
-                : 'bg-white text-slate-600 border border-slate-200 hover:border-brand-300'
-                }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {TABS.map((tab) => {
+            const count = packagesInCategory.filter((pkg) => matchesTab(pkg, tab.key)).length;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition ${activeTab === tab.key
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:border-brand-300'
+                  }`}
+              >
+                {tab.label}
+                <span
+                  className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${activeTab === tab.key
+                    ? 'bg-white/25 text-white'
+                    : 'bg-slate-100 text-slate-500'
+                    }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="relative sm:w-72 shrink-0">
+        <div className="relative sm:w-96 shrink-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             value={query}
@@ -306,23 +469,41 @@ export default function Packages() {
       {filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">
           <PackageSearch className="mx-auto mb-3 text-slate-300" size={40} strokeWidth={1.5} />
-          <p className="text-slate-500">
+          <p className="text-slate-500 mb-3">
             {debouncedQuery.trim()
               ? 'Tidak ada paket yang cocok dengan pencarian.'
-              : `Belum ada paket ${activeTabLabel.toLowerCase()} tersedia saat ini.`}
+              : preferredProgramId !== null
+                ? `Belum ada paket ${activeTabLabel.toLowerCase()} untuk kategori "${activeProgramName}".`
+                : `Belum ada paket ${activeTabLabel.toLowerCase()} tersedia saat ini.`}
           </p>
+          {!debouncedQuery.trim() && preferredProgramId !== null && (
+            <button
+              onClick={handleShowAllCategories}
+              className="text-sm font-semibold text-brand-600 hover:underline"
+            >
+              Tampilkan Semua Kategori →
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((pkg) => (
-            <PackageCard
-              key={pkg.id}
-              pkg={pkg}
-              onOpen={() => navigate(`/app/packages/${pkg.id}`)}
-              ctaLabel="Lihat Detail"
-              typeBadgeLabel={!matchesTab(pkg, activeTab) ? (TYPE_LABEL[pkg.type] || pkg.type) : null}
-            />
-          ))}
+          {filtered.map((pkg) => {
+            const promoForPkg = promos.find((p) => p.applicable_package_id === pkg.id);
+            return (
+              <PackageCard
+                key={pkg.id}
+                pkg={pkg}
+                onOpen={() => navigate(`/app/packages/${pkg.id}`)}
+                ctaLabel="Lihat Detail"
+                typeBadgeLabel={!matchesTab(pkg, activeTab) ? (TYPE_LABEL[pkg.type] || pkg.type) : null}
+                cornerBadge={
+                  promoForPkg
+                    ? { label: `Promo ${promoForPkg.code}`, icon: Gift, className: 'bg-orange-500 text-white' }
+                    : null
+                }
+              />
+            );
+          })}
         </div>
       )}
 

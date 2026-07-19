@@ -5,6 +5,52 @@ import QuestionCard from '../../components/exam/QuestionCard';
 import Timer from '../../components/exam/Timer';
 import ProgressBar from '../../components/exam/ProgressBar';
 
+function ExamAttemptSkeleton() {
+    return (
+        <div className="min-h-screen bg-slate-50 py-8 px-6 animate-pulse">
+            <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
+                <div className="space-y-6">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <div className="h-3.5 w-16 bg-slate-100 rounded mb-2" />
+                                <div className="h-5 w-48 bg-slate-100 rounded" />
+                            </div>
+                            <div className="text-right shrink-0">
+                                <div className="h-3.5 w-24 bg-slate-100 rounded ml-auto" />
+                                <div className="w-32 h-2 bg-slate-100 rounded-full mt-2" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <div className="h-4 w-24 bg-slate-100 rounded mb-4" />
+                        <div className="h-4 w-full bg-slate-100 rounded mb-2" />
+                        <div className="h-4 w-2/3 bg-slate-100 rounded mb-5" />
+                        <div className="space-y-2">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="h-12 rounded-lg bg-slate-100" />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                        <div className="h-10 w-28 rounded-lg bg-slate-100" />
+                        <div className="h-10 w-36 rounded-lg bg-slate-100" />
+                        <div className="h-10 w-40 rounded-lg bg-slate-100" />
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 h-24" />
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 h-56" />
+                    <div className="h-11 w-full rounded-lg bg-slate-100" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function ExamAttempt() {
     const { attemptId } = useParams();
     const navigate = useNavigate();
@@ -206,11 +252,7 @@ export default function ExamAttempt() {
     }
 
     if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <p className="text-slate-500">Memuat ujian...</p>
-            </div>
-        );
+        return <ExamAttemptSkeleton />;
     }
 
     if (error) {

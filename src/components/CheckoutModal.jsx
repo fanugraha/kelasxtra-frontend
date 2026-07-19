@@ -1,12 +1,27 @@
 import { useState } from 'react';
-import { X, Tag, Check, Loader2 } from 'lucide-react';
+import { X, Tag, Check, Loader2, Phone } from 'lucide-react';
 import { packageService } from '../services/packageService';
+import { authService } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
-export default function CheckoutModal({ pkg, onClose, onConfirm, confirming }) {
+export default function CheckoutModal({ pkg, onClose, onConfirm, confirming, checkoutError }) {
+  const { user, setUser } = useAuth();
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [validating, setValidating] = useState(false);
   const [promoError, setPromoError] = useState('');
+
+  // ── Nomor HP di titik checkout ────────────────────────────────────
+  // User yang daftar via Google Login tidak pernah diminta nomor HP saat
+  // signup, jadi field ini cuma muncul kalau `user.phone` masih kosong.
+  // Sengaja ditaruh di titik checkout (bukan di tempat yang cuma niat
+  // lihat-lihat) karena inilah titik konversi paling wajar untuk minta
+  // kontak. Disimpan lewat endpoint PUT /api/auth/profile yang sudah ada,
+  // dipanggil bareng waktu klik "Beli Paket Sekarang", sebelum checkout().
+  const needsPhone = !user?.phone;
+  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [savingPhone, setSavingPhone] = useState(false);
 
   const basePrice = Number(pkg.discount_price ?? pkg.price);
   const finalAmount = appliedPromo ? appliedPromo.final_amount : basePrice;
@@ -31,6 +46,34 @@ export default function CheckoutModal({ pkg, onClose, onConfirm, confirming }) {
     setPromoCode('');
     setPromoError('');
   }
+
+  async function handleConfirmClick() {
+    if (needsPhone) {
+      if (!phoneInput.trim()) {
+        setPhoneError('Nomor HP wajib diisi.');
+        return;
+      }
+      setSavingPhone(true);
+      setPhoneError('');
+      try {
+        // 'name' wajib diisi backend walau yang benar-benar berubah cuma
+        // 'phone', jadi kirim nama yang sudah ada supaya tidak ke-kosongin.
+        const updated = await authService.updateProfile({ name: user?.name, phone: phoneInput.trim() });
+        // Update user di AuthContext supaya `user.phone` langsung ter-update
+        // tanpa reload — kalau tidak, checkout paket kedua di sesi yang
+        // sama bakal nanya nomor HP lagi walau backend sudah punya datanya.
+        setUser((prev) => ({ ...prev, phone: updated?.phone ?? phoneInput.trim() }));
+      } catch (err) {
+        setPhoneError(err.response?.data?.message || 'Gagal menyimpan nomor HP, coba lagi.');
+        setSavingPhone(false);
+        return;
+      }
+      setSavingPhone(false);
+    }
+    onConfirm(appliedPromo ? promoCode.trim() : null);
+  }
+
+  const isBusy = confirming || savingPhone;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
@@ -97,16 +140,42 @@ export default function CheckoutModal({ pkg, onClose, onConfirm, confirming }) {
           {promoError && <p className="text-xs text-danger-600 mb-4">{promoError}</p>}
           {!promoError && <div className="mb-4" />}
 
+          {needsPhone && (
+            <div className="mb-4">
+              <label className="text-sm text-slate-600 mb-2 block">Nomor HP</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input
+                  type="tel"
+                  value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value)}
+                  placeholder="08xxxxxxxxxx"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-500"
+                />
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5">
+                Dipakai untuk info pesanan & pembayaran kamu.
+              </p>
+              {phoneError && <p className="text-xs text-danger-600 mt-1.5">{phoneError}</p>}
+            </div>
+          )}
+
           <p className="text-xs text-slate-400 mb-6">
             Pembayaran diproses aman melalui Midtrans — mendukung QRIS, transfer virtual account, dan e-wallet.
           </p>
 
+          {checkoutError && (
+            <p className="text-sm text-danger-600 bg-danger-50 border border-danger-100 rounded-lg px-4 py-3 mb-4">
+              {checkoutError}
+            </p>
+          )}
+
           <button
-            onClick={() => onConfirm(appliedPromo ? promoCode.trim() : null)}
-            disabled={confirming}
+            onClick={handleConfirmClick}
+            disabled={isBusy}
             className="w-full bg-brand-700 text-white font-bold py-3.5 rounded-lg hover:bg-brand-800 disabled:opacity-50 transition"
           >
-            {confirming ? 'Memproses...' : 'Beli Paket Sekarang'}
+            {isBusy ? 'Memproses...' : 'Beli Paket Sekarang'}
           </button>
         </div>
       </div>

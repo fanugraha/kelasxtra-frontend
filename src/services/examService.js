@@ -31,6 +31,10 @@ export const examService = {
     const response = await api.get('/my-exams');
     return response.data;
   },
+  async getLatestAttemptedExamId() {
+    const response = await api.get('/my-exams/latest-attempted');
+    return response.data.exam_id;
+  },
 
   async listAttempts(examId, bankId = null) {
     const response = await api.get(`/exams/${examId}/attempts`, {

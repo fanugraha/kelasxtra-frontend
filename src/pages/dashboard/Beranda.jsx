@@ -1,19 +1,22 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Tag, Clock, ShoppingBag, Trophy, Medal, Sparkles,
+  Trophy, Sparkles,
   BookOpen, GraduationCap, ChevronRight, Settings2,
-  Users, TrendingUp, Star, Flame, Bell, BellRing,
+  TrendingUp, Star, Flame, Bell, BellRing,
   MessageCircle, PenLine, LayoutGrid, PlayCircle,
-  Copy, Check, Share2, Compass,
+  Compass, Copy, Check,
 } from 'lucide-react';
 import { packageService } from '../../services/packageService';
 import { examBatchService } from '../../services/examBatchService';
 import { examService } from '../../services/examService';
 import { classService } from '../../services/classService';
+import { promoService } from '../../services/promoService';
 import { useAuth } from '../../context/AuthContext';
+import { useOwnedPackageIds } from '../../hooks/useOwnedPackageIds';
 import CategoryModal from '../../components/public/CategoryModal';
 import PackageCard from '../../components/packages/PackageCard';
+import WeeklyLeaderboardHero from '../../components/leaderboard/WeeklyLeaderboardHero';
 // ─────────────────────────────────────────────────────────────────────────
 // KONTEN STATIS
 // Semua konstanta di bawah ini murni tampilan/marketing (bukan hasil CRUD),
@@ -25,12 +28,6 @@ import PackageCard from '../../components/packages/PackageCard';
 // percaya, jadi Beranda fokus mengarahkan ke aksi (lanjut belajar / beli
 // paket), bukan meyakinkan lagi lewat social proof.
 // ─────────────────────────────────────────────────────────────────────────
-
-const rankStyle = {
-  1: 'bg-yellow-100 text-yellow-700',
-  2: 'bg-slate-200 text-slate-700',
-  3: 'bg-orange-100 text-orange-700',
-};
 
 // Shortcut navigasi utama — tujuannya biar user 1 tap sampai ke fitur inti.
 const QUICK_ACCESS = [
@@ -44,19 +41,42 @@ const QUICK_ACCESS = [
 const WHATSAPP_NUMBER = '6281234567890';
 const WHATSAPP_MESSAGE = 'Halo Xtracademy, saya mau tanya soal paket belajar.';
 
-// TODO(API): ganti dengan tanggal akhir promo asli dari backend (mis. field
-// `promo_ends_at` di endpoint settings/promo). Untuk sekarang: akhir minggu ini.
-function getPromoDeadline() {
-  const d = new Date();
-  const daysUntilSunday = (7 - d.getDay()) % 7 || 7;
-  d.setDate(d.getDate() + daysUntilSunday);
+// Format nilai diskon dari Promo asli (discount_type: 'percentage' | lainnya
+// dianggap nominal rupiah) — tidak ada lagi angka karangan, semua dari data
+// promo yang benar-benar aktif.
+function formatDiscount(promo) {
+  if (!promo) return '';
+  return promo.discount_type === 'percentage'
+    ? `${Number(promo.discount_value)}%`
+    : `Rp${Number(promo.discount_value).toLocaleString('id-ID')}`;
+}
+
+function formatPromoDate(dateStr) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' });
+}
+
+// `valid_until` di database cuma tanggal (tanpa jam), jadi deadline
+// dianggap sampai akhir hari itu (23:59:59) — konsisten sama pengecekan
+// backend (`now()->toDateString() > $promo->valid_until->toDateString()`).
+function getPromoDeadline(validUntil) {
+  if (!validUntil) return null;
+  const d = new Date(validUntil);
   d.setHours(23, 59, 59, 0);
   return d;
 }
 
+// targetDate boleh null (belum ada promo aktif) — countdown diam di 0,
+// dan komponen pemanggil yang memutuskan untuk tidak menampilkannya sama
+// sekali kalau targetDate null, bukan nampilin 00:00:00:00 seolah ada promo.
 function useCountdown(targetDate) {
-  const [remaining, setRemaining] = useState(() => Math.max(0, targetDate - new Date()));
+  const [remaining, setRemaining] = useState(() => (targetDate ? Math.max(0, targetDate - new Date()) : 0));
   useEffect(() => {
+    if (!targetDate) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRemaining(0);
+      return;
+    }
     const timer = setInterval(() => {
       setRemaining(Math.max(0, targetDate - new Date()));
     }, 1000);
@@ -71,6 +91,74 @@ function useCountdown(targetDate) {
   return { days, hours, minutes, seconds, expired: remaining <= 0 };
 }
 
+// Full-page skeleton: dipakai selama SEMUA data utama Beranda masih
+// di-fetch (lihat `pageLoading` di komponen Beranda). Sengaja tidak
+// per-section lagi -- section-section kecil yang muncul gantian bikin
+// loading kelihatan berantakan ("popcorn"). Bentuknya sengaja meniru
+// proporsi tiap section di halaman asli supaya begitu data siap dan
+// skeleton diganti konten asli, tidak ada lompatan tata letak yang
+// terasa.
+function BerandaSkeleton() {
+  return (
+    <div className="relative animate-pulse">
+      {/* Hero */}
+      <div className="rounded-2xl p-6 sm:p-8 pb-14 sm:pb-16 bg-slate-200">
+        <div className="h-8 w-56 max-w-full bg-slate-300 rounded mb-3" />
+        <div className="h-4 w-80 max-w-full bg-slate-300 rounded mb-2" />
+        <div className="h-3 w-24 bg-slate-300 rounded mb-6" />
+        <div className="h-20 bg-slate-300/70 rounded-2xl mb-3" />
+        <div className="h-12 bg-slate-300/70 rounded-xl" />
+      </div>
+
+      {/* Quick access */}
+      <div className="relative z-10 -mt-8 sm:-mt-9 mx-1 sm:mx-4 bg-white rounded-xl shadow-lg border border-slate-100 px-3 sm:px-5 py-3.5 mb-8 flex items-center gap-1">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex-1 min-w-[92px] flex flex-col items-center gap-1.5 px-2 py-1.5">
+            <div className="w-10 h-10 rounded-full bg-slate-200" />
+            <div className="h-2.5 w-14 bg-slate-200 rounded" />
+          </div>
+        ))}
+      </div>
+
+      {/* Tabs + grid rekomendasi */}
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <div className="h-9 w-48 bg-slate-200 rounded-lg" />
+        <div className="h-4 w-16 bg-slate-200 rounded" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 h-56">
+            <div className="h-4 w-2/3 bg-slate-200 rounded mb-3" />
+            <div className="h-3 w-1/2 bg-slate-200 rounded mb-2" />
+            <div className="h-3 w-1/3 bg-slate-200 rounded" />
+          </div>
+        ))}
+      </div>
+
+      {/* Kategori Cepat */}
+      <div className="mb-10">
+        <div className="h-5 w-32 bg-slate-200 rounded mb-4" />
+        <div className="flex flex-wrap gap-2.5">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-10 w-28 bg-slate-200 rounded-full" />
+          ))}
+        </div>
+      </div>
+
+      {/* Leaderboard Try Out */}
+      <div className="h-[52px] bg-white rounded-xl border border-slate-200 mb-10" />
+
+      {/* Kelas Online */}
+      <div className="h-5 w-36 bg-slate-200 rounded mb-4" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 h-28" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Beranda() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -79,6 +167,7 @@ export default function Beranda() {
 
   useEffect(() => {
     const stored = localStorage.getItem('preferred_program_id');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored && stored !== 'all') setPreferredProgramId(Number(stored));
   }, []);
 
@@ -102,11 +191,23 @@ export default function Beranda() {
   const [loadingPackages, setLoadingPackages] = useState(true);
   const [packagesError, setPackagesError] = useState('');
 
+  // Paket yang sudah dimiliki disembunyikan dari Beranda juga — konsisten
+  // dengan Packages.jsx, supaya tidak muncul di mana pun kecuali "Paket
+  // Belajar Saya".
+  const { ownedPackageIds, loadingOwned } = useOwnedPackageIds();
+  const availablePackages = useMemo(
+    () => packages.filter((pkg) => !ownedPackageIds.has(pkg.id)),
+    [packages, ownedPackageIds]
+  );
+
   const [classes, setClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
 
   const [batches, setBatches] = useState([]);
   const [selectedBatchId, setSelectedBatchId] = useState('');
+  const [weeklyLeaderboardExamId, setWeeklyLeaderboardExamId] = useState(null);
+  const [resolvingWeeklyLeaderboardExamId, setResolvingWeeklyLeaderboardExamId] = useState(true);
+  const [heroReady, setHeroReady] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   const [leaderboardError, setLeaderboardError] = useState('');
@@ -130,6 +231,7 @@ export default function Beranda() {
 
   useEffect(() => {
     let active = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingContinue(true);
 
     examService
@@ -172,12 +274,23 @@ export default function Beranda() {
     ? classes
     : classes.filter((cls) => cls.program_id === preferredProgramId);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setResolvingWeeklyLeaderboardExamId(true);
+    examService
+      .getLatestAttemptedExamId()
+      .then((examId) => setWeeklyLeaderboardExamId(examId))
+      .catch(() => setWeeklyLeaderboardExamId(null))
+      .finally(() => setResolvingWeeklyLeaderboardExamId(false));
+  }, []);
+
   const visibleBatches = preferredProgramId === null
     ? batches
     : batches.filter((batch) => batch.program_id === preferredProgramId);
 
   useEffect(() => {
     if (visibleBatches.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedBatchId('');
       return;
     }
@@ -188,6 +301,7 @@ export default function Beranda() {
 
   useEffect(() => {
     if (!selectedBatchId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingLeaderboard(true);
     setLeaderboardError('');
     examBatchService
@@ -222,6 +336,7 @@ export default function Beranda() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPackages(preferredProgramId);
   }, [preferredProgramId, loadPackages]);
 
@@ -237,10 +352,57 @@ export default function Beranda() {
     setShowCategoryModal(false);
   }
 
-  // ── Promo / flash sale countdown ────────────────────────────────────
-  const promoDeadline = useMemo(() => getPromoDeadline(), []);
+  // ── Promo aktif dari backend (GET /promos/active) ───────────────────
+  // Endpoint sudah ada dan cuma ngembaliin promo yang benar-benar belum
+  // kedaluwarsa, diurutkan dari yang paling cepat berakhir. Hero cuma
+  // nampilin SATU promo (yang paling cepat berakhir = paling mendesak
+  // buat diklaim), tapi kalau ada lebih dari satu, sisanya ditunjukkan
+  // lewat indikator "+N promo lainnya" — bukan dipaksa muat semua di
+  // satu banner. Kalau kosong, berarti memang tidak ada promo jalan,
+  // dan banner TIDAK menampilkan diskon/countdown apa pun (jangan bikin
+  // urgency palsu).
+  const [activePromos, setActivePromos] = useState([]);
+  const [loadingPromo, setLoadingPromo] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    promoService
+      .listActive()
+      .then((promos) => {
+        if (active) setActivePromos(Array.isArray(promos) ? promos : []);
+      })
+      .catch(() => {
+        if (active) setActivePromos([]);
+      })
+      .finally(() => {
+        if (active) setLoadingPromo(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  const activePromo = activePromos[0] || null;
+  const otherPromoCount = Math.max(activePromos.length - 1, 0);
+
+  const promoDeadline = useMemo(() => getPromoDeadline(activePromo?.valid_until), [activePromo]);
   const countdown = useCountdown(promoDeadline);
   const pad = (n) => String(n).padStart(2, '0');
+
+  // Copy kode promo dari hero — supaya user yang buru-buru klik "Klaim
+  // Promo" langsung punya kodenya di clipboard, tidak perlu ke halaman
+  // lain dulu buat tau kodenya.
+  const [promoCodeCopied, setPromoCodeCopied] = useState(false);
+  // Sengaja TIDAK digerbangi nomor HP: kodenya sudah tampil polos di
+  // hero, jadi menggerbangi cara menyalinnya tidak menghalangi apa pun
+  // (orang tetap bisa baca lalu ketik manual) — cuma bikin gesekan buat
+  // user jujur yang sekadar mau klik salin. Gerbang nomor HP ditaruh di
+  // "Klaim Promo" saja, tempat niat beli beneran terjadi.
+  function handleCopyPromoCode() {
+    if (!activePromo?.code) return;
+    navigator.clipboard.writeText(activePromo.code).then(() => {
+      setPromoCodeCopied(true);
+      setTimeout(() => setPromoCodeCopied(false), 1500);
+    });
+  }
 
   // ── Waitlist "Ingatkan Saya" untuk Kelas Online ─────────────────────
   // TODO(API): saat ini disimpan di localStorage saja. Ganti ke endpoint
@@ -248,6 +410,7 @@ export default function Beranda() {
   // user benar-benar tercatat di backend, bukan cuma di browser dia.
   const [waitlisted, setWaitlisted] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setWaitlisted(localStorage.getItem('waitlist_kelas_online') === '1');
   }, []);
   function handleJoinWaitlist() {
@@ -265,32 +428,16 @@ export default function Beranda() {
 
   const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
 
-  // ── Kode Referral ────────────────────────────────────────────────────
-  // TODO(API): kode & jumlah diskon idealnya dibuat & dilacak di backend
-  // (mis. GET /me/referral-code) supaya konsisten antar device dan bisa
-  // dihitung otomatis saat teman yang diajak benar-benar checkout. Untuk
-  // sekarang kode dibangkitkan deterministik dari nama/id user di sisi
-  // frontend, jadi tetap sama tiap kali dibuka tapi belum tercatat server.
-  const referralCode = useMemo(() => {
-    const namePart = (user?.name || 'TEMAN').replace(/[^a-zA-Z]/g, '').slice(0, 5).toUpperCase() || 'TEMAN';
-    const idPart = String(user?.id ?? '00').padStart(2, '0').slice(-3);
-    return `KX-${namePart}${idPart}`;
-  }, [user]);
+  // Kalau promo cuma berlaku buat 1 paket tertentu (applicable_package_id
+  // terisi), arahkan langsung ke paket itu — jangan lempar ke daftar
+  // umum dan biarkan user mencari sendiri paket mana yang dapat promo.
+  const promoClaimTarget = activePromo?.applicable_package_id
+    ? `/app/packages/${activePromo.applicable_package_id}`
+    : '/app/packages';
 
-  const [referralCopied, setReferralCopied] = useState(false);
-
-  function handleCopyReferral() {
-    const text = referralCode;
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).catch(() => { });
-    }
-    setReferralCopied(true);
-    setTimeout(() => setReferralCopied(false), 2000);
+  function handleClaimPromo() {
+    navigate(promoClaimTarget);
   }
-
-  const referralShareHref = `https://wa.me/?text=${encodeURIComponent(
-    `Yuk belajar bareng di Xtracademy! Pakai kode referral aku "${referralCode}" buat dapat diskon 15% di paket pertamamu 🎉`
-  )}`;
 
   // ── Trending Minggu Ini ─────────────────────────────────────────────
   // TODO(API): jumlah pembeli di bawah ini masih dummy. Idealnya dari
@@ -299,10 +446,40 @@ export default function Beranda() {
   // menurun. Sementara diambil dari 4 paket teratas yang sudah termuat.
   const trendingPackages = useMemo(() => {
     const mockCounts = [312, 248, 195, 167];
-    return packages.slice(0, 4).map((pkg, i) => ({ pkg, count: mockCounts[i] ?? 120 }));
-  }, [packages]);
+    return availablePackages.slice(0, 4).map((pkg, i) => ({ pkg, count: mockCounts[i] ?? 120 }));
+  }, [availablePackages]);
 
+  // Full-page skeleton: tunggu SEMUA data utama siap sebelum merender
+  // apa pun, supaya loading terasa sebagai satu proses yang mulus --
+  // bukan section-section kecil yang muncul gantian tidak sinkron.
+  // `heroReady` mewakili leaderboard mingguan di dalam hero (dia fetch
+  // datanya sendiri setelah examId diketahui, jadi tidak cukup hanya
+  // menunggu `resolvingWeeklyLeaderboardExamId`).
+  const pageLoading =
+    loadingPrograms ||
+    loadingPackages ||
+    loadingOwned ||
+    loadingClasses ||
+    loadingContinue ||
+    loadingLeaderboard ||
+    loadingPromo ||
+    resolvingWeeklyLeaderboardExamId ||
+    !heroReady;
+
+  // PENTING: konten asli TETAP di-mount (bukan diganti total lewat early
+  // return) walau pageLoading masih true. Kalau di-unmount, komponen anak
+  // seperti WeeklyLeaderboardHero tidak akan pernah sempat menjalankan
+  // fetch-nya (efeknya tidak jalan sama sekali kalau tidak pernah
+  // dirender), sehingga `onReady` tidak pernah terpanggil dan
+  // `pageLoading` macet selamanya menunggu sesuatu yang tidak akan
+  // pernah terjadi. Solusinya: konten asli tetap dirender & tetap fetch
+  // data di background, cuma disembunyikan pakai `hidden` sampai semua
+  // siap -- skeleton ditumpuk di atasnya sebagai apa yang benar-benar
+  // terlihat pengguna.
   return (
+    <div className="relative">
+      {pageLoading && <BerandaSkeleton />}
+      <div className={pageLoading ? 'hidden' : ''}>
     <div className="relative">
       {/* ── Greeting + Promo (digabung jadi 1 card) ───────────────────
           Menggantikan hero maroon terpisah + promo banner terpisah.
@@ -310,7 +487,7 @@ export default function Beranda() {
           pulsing CTA, wave emoji) dipertahankan persis seperti versi
           promo banner sebelumnya — tidak disederhanakan. */}
       <div
-        className="relative rounded-xl p-5 sm:p-6 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 overflow-hidden bg-[length:200%_200%] animate-[flowGradient_8s_ease_infinite]"
+        className="relative rounded-2xl p-6 sm:p-8 pb-14 sm:pb-16 overflow-hidden bg-[length:200%_200%] animate-[flowGradient_8s_ease_infinite]"
         style={{
           backgroundImage:
             'linear-gradient(120deg, #f97316 0%, #ef4444 25%, #dc2626 50%, #ef4444 75%, #f97316 100%)',
@@ -320,55 +497,98 @@ export default function Beranda() {
         <div className="pointer-events-none absolute -top-10 -right-6 w-44 h-44 rounded-full bg-white/15 blur-3xl animate-[floatBlob1_6s_ease-in-out_infinite]" />
         <div className="pointer-events-none absolute -bottom-16 left-10 w-56 h-56 rounded-full bg-yellow-300/20 blur-3xl animate-[floatBlob2_7s_ease-in-out_infinite]" />
 
-        <div className="relative text-white min-w-0">
-          <span className="relative inline-flex items-center gap-1.5 overflow-hidden bg-white/20 text-xs font-bold px-2.5 py-1 rounded-full mb-2">
-            <Flame size={12} />
-            PROMO MINGGU INI
-            <span className="pointer-events-none absolute inset-0 -translate-x-full animate-[shimmer_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-          </span>
-          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 flex-wrap">
+        {/* Baris 1: Sapaan + Ganti Kategori */}
+        <div className="relative text-white mb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold leading-tight flex flex-wrap items-center gap-2 mb-2">
             {user?.name ? (
               <>
                 Halo, {user.name.split(' ')[0]}
                 <span className="inline-block origin-[70%_70%] animate-[wave_2.2s_ease-in-out_infinite]">👋</span>
-                <span className="font-normal text-white/85 text-sm sm:text-base">
-                  — ada promo diskon try out nih!
-                </span>
               </>
             ) : (
-              'Diskon Spesial Paket Try Out — buruan sebelum harga naik lagi'
+              'Persiapan Try Out Terbesar & Terlengkap'
             )}
           </h1>
-        </div>
-
-        <div className="relative flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5 text-white">
-            {[
-              ['Hari', countdown.days],
-              ['Jam', countdown.hours],
-              ['Menit', countdown.minutes],
-              ['Detik', countdown.seconds],
-            ].map(([label, value]) => (
-              <div key={label} className="bg-white/15 rounded-lg px-2.5 py-1.5 text-center min-w-[52px]">
-                <p className="text-lg font-bold leading-none">{pad(value)}</p>
-                <p className="text-[10px] text-white/70 mt-0.5">{label}</p>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={() => navigate('/app/packages')}
-            className="bg-white text-orange-600 font-bold text-sm px-4 py-2.5 rounded-lg hover:bg-orange-50 transition whitespace-nowrap animate-[pulseCta_2s_ease-in-out_infinite]"
-          >
-            Klaim Promo
-          </button>
+          <p className="text-white/85 text-sm sm:text-base max-w-md mb-1">
+            Kumpulkan skor terbaik minggu ini dan naik ke puncak leaderboard.
+          </p>
           <button
             onClick={() => setShowCategoryModal(true)}
-            className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-semibold px-3 py-2 rounded-lg transition backdrop-blur-sm"
+            className="flex items-center gap-1 text-white/65 hover:text-white text-xs font-medium transition"
           >
-            <Settings2 size={13} />
+            <Settings2 size={12} />
             Ganti Kategori
           </button>
         </div>
+
+        {/* Baris 2: Leaderboard Mingguan — SOROTAN UTAMA hero, menggantikan
+            promo sebagai fokus visual pertama yang dilihat siswa. */}
+        <div className="relative">
+          <WeeklyLeaderboardHero
+            examId={weeklyLeaderboardExamId}
+            resolvingExamId={resolvingWeeklyLeaderboardExamId}
+            onReady={() => setHeroReady(true)}
+          />
+        </div>
+
+        {/* Baris 3: Promo — diturunkan jadi strip sekunder di bawah
+            leaderboard. Semua perilaku asli (copy kode, countdown, klaim,
+            shimmer badge) dipertahankan persis, cuma diperkecil ukurannya. */}
+        {activePromo ? (
+          <div className="relative mt-4 flex flex-wrap items-center justify-between gap-3 bg-white/10 rounded-xl px-4 py-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="relative inline-flex items-center gap-1.5 overflow-hidden bg-white/20 text-xs font-bold px-2.5 py-1 rounded-full">
+                  <Flame size={12} />
+                  {activePromo.title}
+                  <span className="pointer-events-none absolute inset-0 -translate-x-full animate-[shimmer_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+                </span>
+                <button
+                  onClick={handleCopyPromoCode}
+                  className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-semibold font-mono px-2.5 py-1 rounded-full transition"
+                >
+                  {promoCodeCopied ? <Check size={12} /> : <Copy size={12} />}
+                  {activePromo.code}
+                </button>
+              </div>
+              <p className="text-white/75 text-xs">
+                Diskon <span className="font-bold text-white">{formatDiscount(activePromo)}</span>
+                {' '}· Berlaku sampai {formatPromoDate(activePromo.valid_until)}
+                {otherPromoCount > 0 && (
+                  <button
+                    onClick={() => navigate('/app/promos')}
+                    className="ml-1.5 underline underline-offset-2 font-semibold text-white hover:text-white/80 transition"
+                  >
+                    +{otherPromoCount} promo lainnya
+                  </button>
+                )}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1 text-white/90">
+                {[
+                  ['H', countdown.days],
+                  ['J', countdown.hours],
+                  ['M', countdown.minutes],
+                  ['D', countdown.seconds],
+                ].map(([label, value]) => (
+                  <div key={label} className="bg-white/10 rounded-md px-1.5 py-1 text-center min-w-[28px]">
+                    <p className="text-xs font-bold leading-none">{pad(value)}</p>
+                    <p className="text-[8px] text-white/60 mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={handleClaimPromo}
+                className="bg-white text-orange-600 font-bold text-xs px-4 py-2 rounded-full hover:bg-orange-50 transition whitespace-nowrap animate-[pulseCta_2s_ease-in-out_infinite] shadow-lg"
+              >
+                Klaim
+                <ChevronRight size={13} className="inline ml-0.5" />
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <style>{`
           @keyframes flowGradient {
@@ -404,45 +624,28 @@ export default function Beranda() {
         `}</style>
       </div>
 
-      {/* Kode Referral — ditaruh tepat di bawah banner promo, strip ramping
-          biar tidak bersaing bobot visual, tapi tetap kelihatan awal
-          sebelum user scroll lebih jauh. */}
-      <div className="mb-8 flex items-center justify-between gap-3 bg-brand-50/60 border border-brand-100 rounded-lg px-4 py-2.5 text-sm">
-        <div className="flex items-center gap-2 min-w-0">
-          <Users size={15} className="text-brand-500 shrink-0" />
-          <span className="text-slate-600 truncate">
-            <span className="font-semibold text-slate-700">Ajak teman, dapat diskon 15%</span>
-            <span className="hidden sm:inline"> — bagikan kode kamu.</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
+      {/* Quick Access — "mengambang" di tepi bawah hero, terinspirasi
+          strip kategori putih di Ruangguru yang overlap ke hero biru. */}
+      <div className="relative z-10 -mt-8 sm:-mt-9 mx-1 sm:mx-4 bg-white rounded-xl shadow-lg border border-slate-100 px-3 sm:px-5 py-3.5 mb-8 flex items-center gap-1 overflow-x-auto">
+        {QUICK_ACCESS.map((item) => (
           <button
-            onClick={handleCopyReferral}
-            className="flex items-center gap-1.5 font-mono font-bold text-xs text-slate-700 bg-white border border-dashed border-slate-300 rounded-md px-2.5 py-1.5 hover:border-brand-300 transition"
-            title="Salin kode"
+            key={item.label}
+            onClick={() => navigate(item.to)}
+            className="flex-1 min-w-[92px] flex flex-col items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 transition"
           >
-            {referralCode}
-            {referralCopied ? <Check size={12} className="text-success-600" /> : <Copy size={12} className="text-slate-400" />}
+            <span className={`w-10 h-10 rounded-full flex items-center justify-center ${item.color}`}>
+              <item.icon size={18} />
+            </span>
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-700 text-center leading-tight">{item.label}</span>
           </button>
-          <a
-            href={referralShareHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-brand-600 font-semibold text-xs hover:underline whitespace-nowrap"
-          >
-            <Share2 size={12} />
-            Bagikan
-          </a>
-        </div>
+        ))}
       </div>
 
       {/* Lanjutkan Belajar — hanya tampil kalau ketemu attempt yang sedang
           berjalan. Progress bar dibuat "indeterminate" (bukan angka %)
           karena API belum expose jumlah soal terjawab — lihat TODO(API)
           di atas kalau field itu sudah tersedia. */}
-      {loadingContinue ? (
-        <div className="mb-8 h-24 bg-white rounded-xl border border-slate-200 animate-pulse" />
-      ) : continueItem ? (
+      {continueItem ? (
         <div className="mb-8 bg-white rounded-xl border border-slate-200 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-5">
           <span className="shrink-0 w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center">
             <PlayCircle size={26} strokeWidth={1.75} />
@@ -471,24 +674,6 @@ export default function Beranda() {
           `}</style>
         </div>
       ) : null}
-
-      {/* Quick Access */}
-      <div className="mb-10">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {QUICK_ACCESS.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => navigate(item.to)}
-              className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col items-center gap-2 hover:border-brand-300 hover:shadow-sm transition"
-            >
-              <span className={`w-11 h-11 rounded-full flex items-center justify-center ${item.color}`}>
-                <item.icon size={20} />
-              </span>
-              <span className="text-xs sm:text-sm font-semibold text-slate-700 text-center">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Rekomendasi / Trending — FOKUS UTAMA Beranda, diletakkan di atas
           (langsung setelah Quick Access) karena inilah yang paling
@@ -524,13 +709,7 @@ export default function Beranda() {
 
       {packagesTab === 'rekomendasi' ? (
         <>
-          {loadingPackages ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse h-56" />
-              ))}
-            </div>
-          ) : packages.length === 0 ? (
+          {availablePackages.length === 0 ? (
             <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center mb-10">
               <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-50 text-brand-500 mb-4">
                 <Compass size={26} strokeWidth={1.75} />
@@ -556,7 +735,7 @@ export default function Beranda() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-              {packages.map((pkg, idx) => (
+              {availablePackages.map((pkg, idx) => (
                 <PackageCard
                   key={pkg.id}
                   pkg={pkg}
@@ -607,7 +786,7 @@ export default function Beranda() {
       )}
 
       {/* Kategori Cepat */}
-      {!loadingPrograms && programs.length > 0 && (
+      {programs.length > 0 && (
         <div className="mb-10">
           <h2 className="text-lg font-bold text-slate-800 mb-4">Kategori Cepat</h2>
           <div className="flex flex-wrap gap-2.5">
@@ -638,110 +817,40 @@ export default function Beranda() {
         </div>
       )}
 
-      {/* Leaderboard */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-10">
-        <div className="bg-gradient-to-r from-orange-500 to-brand-600 px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-2 text-white">
-            <Trophy size={22} />
-            <h2 className="text-lg font-bold">Leaderboard Try Out</h2>
-          </div>
-          {visibleBatches.length > 0 && (
-            <select
-              value={selectedBatchId}
-              onChange={(e) => setSelectedBatchId(e.target.value)}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 bg-white border-none focus:outline-none focus:ring-2 focus:ring-white/50"
-            >
-              {visibleBatches.map((batch) => (
-                <option key={batch.id} value={batch.id}>
-                  {batch.exam?.title ? `${batch.exam.title} — ${batch.name}` : batch.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        <div className="p-6">
-          {visibleBatches.length === 0 && !loadingLeaderboard ? (
-            <p className="text-slate-500 text-center py-6">Belum ada try out yang sudah selesai dinilai.</p>
-          ) : loadingLeaderboard ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-14 bg-slate-100 rounded-lg animate-pulse" />
-              ))}
-            </div>
-          ) : leaderboardError ? (
-            <p className="text-slate-500 text-center py-6">{leaderboardError}</p>
-          ) : leaderboard.length === 0 ? (
-            <p className="text-slate-500 text-center py-6">Belum ada peserta di try out ini.</p>
-          ) : (
-            <>
-              <div className="space-y-2 mb-4">
-                {leaderboard.map((entry) => {
-                  const isMe = user && entry.user?.id === user.id;
-                  return (
-                    <div
-                      key={entry.id}
-                      className={`flex items-center justify-between px-4 py-3 rounded-lg ${isMe ? 'bg-brand-50 border border-brand-200' : 'hover:bg-slate-50'
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${rankStyle[entry.rank] || 'bg-slate-100 text-slate-500'
-                            }`}
-                        >
-                          {entry.rank <= 3 ? <Medal size={15} /> : entry.rank}
-                        </span>
-                        <div>
-                          <p className="font-semibold text-slate-800 text-sm">
-                            {entry.user?.name} {isMe && <span className="text-brand-600">(Kamu)</span>}
-                          </p>
-                          <p className="text-xs text-slate-400">{entry.correct_count} soal benar</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Sparkles size={13} className="text-brand-500" />
-                        <span className="font-bold text-slate-800">{entry.score}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {user && !myEntry && (
-                <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3 mb-4 text-sm">
-                  <span className="text-slate-500">Kamu belum ikut try out ini.</span>
-                  <button
-                    onClick={() => navigate('/app/packages')}
-                    className="font-semibold text-brand-600 hover:underline flex items-center gap-1"
-                  >
-                    Ikut Sekarang <ChevronRight size={13} />
-                  </button>
-                </div>
-              )}
-
-              <button
-                onClick={() => navigate('/app/leaderboard')}
-                className="w-full text-center text-sm font-semibold text-brand-600 hover:underline py-2"
-              >
-                Lihat Leaderboard Lengkap →
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+      {/* Leaderboard Try Out — diringkas jadi 1 baris (sebelumnya card
+          besar yang seringkali kosong karena berbasis jadwal batch, bukan
+          selalu aktif seperti Latihan Soal). Detail lengkap tetap ada di
+          halaman /app/leaderboard. Render WeeklyLeaderboardSection lama
+          juga dihapus di sini — sudah pindah ke hero (WeeklyLeaderboardHero). */}
+      <button
+        onClick={() => navigate('/app/leaderboard')}
+        className="w-full flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 px-5 py-3.5 mb-10 hover:border-brand-300 transition text-left"
+      >
+        <span className="flex items-center gap-2 text-sm text-slate-600 min-w-0">
+          <Trophy size={16} className="text-brand-500 shrink-0" />
+          <span className="truncate">
+            {visibleBatches.length === 0
+              ? 'Belum ada try out yang sudah selesai dinilai.'
+              : leaderboardError
+              ? leaderboardError
+              : leaderboard.length === 0
+              ? 'Belum ada peserta di try out ini.'
+              : myEntry
+              ? `Kamu Rank #${myEntry.rank} di Leaderboard Try Out`
+              : 'Leaderboard Try Out sudah tersedia — lihat rankingnya'}
+          </span>
+        </span>
+        <span className="text-xs font-semibold text-brand-600 flex items-center gap-1 shrink-0">
+          Lihat <ChevronRight size={13} />
+        </span>
+      </button>
 
       {/* Kelas Online */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-slate-800">Kelas Online</h2>
       </div>
 
-      {loadingClasses ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
-          {[1, 2].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse h-28" />
-          ))}
-        </div>
-      ) : classes.length === 0 ? (
+      {classes.length === 0 ? (
         <div className="relative rounded-xl p-10 text-center mb-10 overflow-hidden bg-[linear-gradient(135deg,theme(colors.brand.700)_0%,theme(colors.brand.600)_45%,theme(colors.orange.600)_130%)]">
           {/* Aksen blur dekoratif, bukan konten — murni biar gradient tidak flat */}
           <div className="pointer-events-none absolute -top-16 -right-10 w-56 h-56 rounded-full bg-white/10 blur-3xl" />
@@ -818,6 +927,8 @@ export default function Beranda() {
         <MessageCircle size={18} />
         <span className="hidden sm:inline">Tanya CS</span>
       </a>
+    </div>
+      </div>
     </div>
   );
 }

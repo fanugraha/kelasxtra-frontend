@@ -20,6 +20,53 @@ const TABS = [
 
 const KNOWN_TYPES = new Set(TABS.flatMap((tab) => tab.types));
 
+// Full-page skeleton -- meniru struktur halaman asli (judul, baris tab +
+// search, daftar kartu paket dimiliki, grid cross-sell) supaya loading
+// terlihat sebagai satu proses yang mulus. Digerbangi oleh `pageLoading`
+// (gabungan `loading` + `loadingRecommended`) di bawah, bukan cuma
+// `loading` saja -- kalau cuma `loading`, section cross-sell akan muncul
+// belakangan begitu `loadingRecommended` selesai dan bikin halaman
+// "melompat".
+function MyPackagesSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="h-7 w-56 max-w-full bg-slate-200 rounded mb-6" />
+
+      {/* Tab filter + search */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-6 pb-4 border-b border-slate-200">
+        <div className="flex items-center gap-6">
+          <div className="h-4 w-16 bg-slate-200 rounded" />
+          <div className="h-4 w-24 bg-slate-200 rounded" />
+        </div>
+        <div className="flex-1 flex items-center gap-2 lg:justify-end">
+          <div className="h-10 flex-1 lg:max-w-md bg-slate-200 rounded-full" />
+          <div className="h-10 w-20 bg-slate-200 rounded-full shrink-0" />
+        </div>
+      </div>
+
+      {/* Daftar paket dimiliki */}
+      <div className="mb-10">
+        <div className="h-5 w-28 bg-slate-200 rounded mb-4" />
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 h-28" />
+          ))}
+        </div>
+      </div>
+
+      {/* Cross-sell */}
+      <div>
+        <div className="h-5 w-64 max-w-full bg-slate-200 rounded mb-4" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-xl border border-slate-200 h-44" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MyPackages() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
@@ -122,15 +169,15 @@ export default function MyPackages() {
     setSearch(searchInput);
   }
 
-  if (loading) {
+  // Full-page skeleton: tunggu paket dimiliki DAN rekomendasi cross-sell
+  // sekaligus, supaya section "Paket Lain yang Mungkin Kamu Suka" tidak
+  // muncul belakangan dan bikin halaman melompat.
+  const pageLoading = loading || loadingRecommended;
+
+  if (pageLoading) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-slate-800 mb-6">Paket Belajar Saya</h1>
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 animate-pulse h-28" />
-          ))}
-        </div>
+        <MyPackagesSkeleton />
       </div>
     );
   }
@@ -241,7 +288,7 @@ export default function MyPackages() {
         </div>
       )}
 
-      {!loadingRecommended && crossSellPackages.length > 0 && (
+      {crossSellPackages.length > 0 && (
         <div>
           <h2 className="text-lg font-bold text-slate-700 mb-4">Paket Lain yang Mungkin Kamu Suka</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

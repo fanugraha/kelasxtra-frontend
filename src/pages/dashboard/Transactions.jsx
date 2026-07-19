@@ -113,6 +113,47 @@ function TicketNotches({ stubWidthClass }) {
   );
 }
 
+// Full-page skeleton -- meniru struktur halaman asli (header gradient
+// dengan 3 kartu statistik, baris tab + tombol sort, grid kartu tiket)
+// supaya begitu data siap, tidak ada lompatan ukuran/tata letak. Halaman
+// ini cuma punya SATU sumber data (`listTransactions`), jadi tidak ada
+// masalah beberapa skeleton section muncul gantian tidak sinkron --
+// perbaikan di sini murni soal bentuk skeleton, bukan penggabungan flag
+// loading (sudah cuma satu dari awal).
+function TransactionsSkeleton() {
+  return (
+    <div className="animate-pulse">
+      {/* Header: judul + subtitle + 3 kartu statistik */}
+      <div className="mb-8 rounded-2xl bg-slate-100 px-5 sm:px-7 py-6">
+        <div className="h-7 w-56 max-w-full bg-slate-200 rounded mb-2" />
+        <div className="h-4 w-72 max-w-full bg-slate-200 rounded mb-5" />
+        <div className="flex flex-wrap items-center gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-12 w-40 max-w-full bg-slate-200 rounded-xl" />
+          ))}
+        </div>
+      </div>
+
+      {/* Tabs + tombol sort */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-9 w-28 rounded-full bg-slate-100" />
+          ))}
+        </div>
+        <div className="h-9 w-24 rounded-lg bg-slate-100 shrink-0" />
+      </div>
+
+      {/* Grid kartu tiket */}
+      <div className="grid gap-5 md:grid-cols-2">
+        {[1, 2, 3, 4].map((item) => (
+          <div key={item} className="h-40 rounded-2xl border border-slate-200 bg-white" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Transactions() {
   const navigate = useNavigate();
 
@@ -156,21 +197,7 @@ export default function Transactions() {
   const EmptyIcon = emptyState.icon;
 
   if (loading) {
-    return (
-      <div>
-        <div className="mb-8 h-32 rounded-2xl bg-slate-100 animate-pulse" />
-        <div className="mb-6 flex gap-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-9 w-28 rounded-full bg-slate-100 animate-pulse" />
-          ))}
-        </div>
-        <div className="grid gap-5 md:grid-cols-2">
-          {[1, 2, 3, 4].map((item) => (
-            <div key={item} className="h-40 rounded-2xl border border-slate-200 bg-white animate-pulse" />
-          ))}
-        </div>
-      </div>
-    );
+    return <TransactionsSkeleton />;
   }
 
   return (

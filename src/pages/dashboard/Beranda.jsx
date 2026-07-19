@@ -17,6 +17,7 @@ import { useOwnedPackageIds } from '../../hooks/useOwnedPackageIds';
 import CategoryModal from '../../components/public/CategoryModal';
 import PackageCard from '../../components/packages/PackageCard';
 import WeeklyLeaderboardHero from '../../components/leaderboard/WeeklyLeaderboardHero';
+import RankNotificationToast from '../../components/notifications/RankNotificationToast';
 // ─────────────────────────────────────────────────────────────────────────
 // KONTEN STATIS
 // Semua konstanta di bawah ini murni tampilan/marketing (bukan hasil CRUD),
@@ -505,6 +506,7 @@ export default function Beranda() {
   // terlihat pengguna.
   return (
     <div className="relative">
+      <RankNotificationToast />
       {pageLoading && <BerandaSkeleton />}
       <div className={pageLoading ? 'hidden' : ''}>
     <div className="relative">

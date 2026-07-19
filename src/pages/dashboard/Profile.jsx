@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services/authService';
 import { examBatchService } from '../../services/examBatchService';
 import { weeklyLeaderboardService } from '../../services/weeklyLeaderboardService';
+import { leaderboardEventService } from '../../services/leaderboardEventService';
 
 const rankBadge = {
     1: 'bg-yellow-100 text-yellow-700',
@@ -22,6 +23,8 @@ export default function Profile() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
     const [errors, setErrors] = useState({});
+    const [hideFromFeed, setHideFromFeed] = useState(!!user?.hide_from_leaderboard_feed);
+    const [savingPrivacy, setSavingPrivacy] = useState(false);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -135,7 +138,61 @@ export default function Profile() {
                 </form>
             </div>
 
+            <PrivacySection
+                hideFromFeed={hideFromFeed}
+                saving={savingPrivacy}
+                onToggle={async () => {
+                    const next = !hideFromFeed;
+                    setHideFromFeed(next); // optimistic
+                    setSavingPrivacy(true);
+                    try {
+                        await leaderboardEventService.updatePrivacy(next);
+                        setUser((prev) => ({ ...prev, hide_from_leaderboard_feed: next }));
+                    } catch {
+                        setHideFromFeed(!next); // rollback kalau gagal
+                    } finally {
+                        setSavingPrivacy(false);
+                    }
+                }}
+            />
+
             <AchievementsSection />
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Privasi feed leaderboard -- toggle hide_from_leaderboard_feed. Default
+// OFF (nama tampil, opt-out model), konsisten dengan leaderboard biasa
+// yang memang sudah publik.
+// ─────────────────────────────────────────────────────────────────────────
+function PrivacySection({ hideFromFeed, saving, onToggle }) {
+    return (
+        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5 p-6 mb-6">
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-sm font-bold text-slate-800 mb-1">Privasi Feed Leaderboard</h2>
+                    <p className="text-xs text-slate-400 max-w-md">
+                        Kalau diaktifkan, nama kamu tidak akan muncul di notifikasi feed publik saat rank kamu
+                        naik. Notifikasi pribadi untuk kamu sendiri tetap berjalan seperti biasa.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={onToggle}
+                    disabled={saving}
+                    aria-pressed={hideFromFeed}
+                    className={`shrink-0 relative w-11 h-6 rounded-full transition disabled:opacity-60 ${
+                        hideFromFeed ? 'bg-brand-600' : 'bg-slate-200'
+                    }`}
+                >
+                    <span
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                            hideFromFeed ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                    />
+                </button>
+            </div>
         </div>
     );
 }

@@ -74,7 +74,7 @@ export default function PackageCard({
       )}
 
       {/* ── Banner — full-bleed dari sudut atas card, badge mengambang di pojoknya ── */}
-      <div className="relative w-full h-40 sm:h-44 bg-gradient-to-br from-brand-50 to-orange-50">
+      <div className="relative w-full aspect-[16/10] bg-gradient-to-br from-brand-50 to-orange-50">
         {pkg.banner_image_url ? (
           <img
             src={pkg.banner_image_url}

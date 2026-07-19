@@ -725,7 +725,7 @@ export default function Beranda() {
                   pkg={pkg}
                   onOpen={() => navigate(`/app/packages/${pkg.id}`)}
                   ctaLabel="Mulai Latihan"
-                  typeBadgeLabel="Fokus 1 Topik"
+                  typeBadgeLabel={pkg.category ? `Fokus ${pkg.category.name}` : 'Fokus 1 Topik'}
                 />
               </div>
             ))}

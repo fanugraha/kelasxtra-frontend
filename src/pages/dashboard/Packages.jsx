@@ -267,6 +267,7 @@ export default function Packages() {
   const [loadingPromos, setLoadingPromos] = useState(true);
   const [focusPackages, setFocusPackages] = useState([]);
   const [loadingFocusPackages, setLoadingFocusPackages] = useState(true);
+  const [selectedFocusCategoryId, setSelectedFocusCategoryId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
@@ -302,6 +303,12 @@ export default function Packages() {
       setPreferredProgramId(null);
     }
   }, [loadingPrograms, programs, preferredProgramId]);
+
+  // Reset filter topik fokus tiap kali kategori Program diganti -- chip
+  // yang dipilih (mis. "TWK") mungkin tidak relevan lagi di Program baru.
+  useEffect(() => {
+    setSelectedFocusCategoryId(null);
+  }, [preferredProgramId]);
 
   const debouncedQuery = useDebouncedValue(query, 250);
 
@@ -373,6 +380,22 @@ export default function Packages() {
     return availableFocusPackages.filter((pkg) => pkg.program_id === preferredProgramId);
   }, [availableFocusPackages, preferredProgramId]);
 
+  // Kategori unik dari paket fokus yang sedang tampil -- dipakai buat
+  // render chip filter. Kalau cuma ada 1 topik, chip-nya tidak perlu
+  // ditampilkan (lihat kondisi focusCategories.length > 1 di JSX).
+  const focusCategories = useMemo(() => {
+    const map = new Map();
+    focusPackagesInCategory.forEach((pkg) => {
+      if (pkg.category) map.set(pkg.category.id, pkg.category);
+    });
+    return Array.from(map.values());
+  }, [focusPackagesInCategory]);
+
+  const visibleFocusPackages = useMemo(() => {
+    if (selectedFocusCategoryId === null) return focusPackagesInCategory;
+    return focusPackagesInCategory.filter((pkg) => pkg.category?.id === selectedFocusCategoryId);
+  }, [focusPackagesInCategory, selectedFocusCategoryId]);
+
   const filtered = useMemo(() => {
     let result = packagesInCategory.filter((pkg) => matchesTab(pkg, activeTab));
 
@@ -442,14 +465,39 @@ export default function Packages() {
       {focusPackagesInCategory.length > 0 && (
         <div className="mb-8">
           <h2 className="text-lg font-bold text-slate-800 mb-4">Latihan Fokus</h2>
+          {focusCategories.length > 1 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              <button
+                onClick={() => setSelectedFocusCategoryId(null)}
+                className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold transition ${selectedFocusCategoryId === null
+                  ? 'bg-brand-600 border-brand-600 text-white'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300'
+                  }`}
+              >
+                Semua
+              </button>
+              {focusCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedFocusCategoryId(category.id)}
+                  className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold transition ${selectedFocusCategoryId === category.id
+                    ? 'bg-brand-600 border-brand-600 text-white'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300'
+                    }`}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
-            {focusPackagesInCategory.map((pkg) => (
+            {visibleFocusPackages.map((pkg) => (
               <div key={pkg.id} className="shrink-0 w-64 snap-start">
                 <PackageCard
                   pkg={pkg}
                   onOpen={() => navigate(`/app/packages/${pkg.id}`)}
                   ctaLabel="Mulai Latihan"
-                  typeBadgeLabel="Fokus 1 Topik"
+                  typeBadgeLabel={pkg.category ? `Fokus ${pkg.category.name}` : 'Fokus 1 Topik'}
                 />
               </div>
             ))}

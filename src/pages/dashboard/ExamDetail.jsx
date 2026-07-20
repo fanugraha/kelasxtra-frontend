@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Clock, CheckCircle2, XCircle, RotateCcw, FileSearch, X } from 'lucide-react';
 import { examService } from '../../services/examService';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 function ExamDetailSkeleton() {
   return (
@@ -50,6 +51,7 @@ export default function ExamDetail() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
   const [showBankModal, setShowBankModal] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
 
   // Tahap 1: ambil daftar bank exam ini (selalu, supaya tahu apakah exam ini
   // single-bank atau multi-bank) sebelum memutuskan mau fetch summary pakai
@@ -121,7 +123,11 @@ export default function ExamDetail() {
   }, [examId, activeBankId, presetBankId, banks.length, banksLoaded]);
 
   function handleStart() {
-    console.log('[ExamDetail] handleStart dipanggil, activeBankId =', activeBankId);
+    setShowRulesModal(true);
+  }
+
+  function confirmStart() {
+    setShowRulesModal(false);
     doStart(activeBankId);
   }
 
@@ -279,6 +285,22 @@ export default function ExamDetail() {
             )}
           </div>
         </div>
+      )}
+      {showRulesModal && (
+        <ConfirmModal
+          title="Harap dibaca terlebih dahulu"
+          rules={[
+            'Pastikan kamu membuka website ini melalui browser (disarankan Chrome).',
+            'Ketika kamu memulai ujian, timer akan berjalan otomatis dan tidak bisa ditunda, jadi siapkan waktu yang tepat.',
+            'Jawaban akan otomatis tersimpan saat kamu memilih opsi atau menulis jawaban.',
+            'Ketika waktu habis, jawaban akan otomatis terkirim.',
+            'Hasil ujian bisa dilihat setelah ujian selesai atau diakhiri.',
+          ]}
+          confirmLabel="Mulai Sekarang"
+          cancelLabel="Batal"
+          onConfirm={confirmStart}
+          onClose={() => setShowRulesModal(false)}
+        />
       )}
     </div>
   );

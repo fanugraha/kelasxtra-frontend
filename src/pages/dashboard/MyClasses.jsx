@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, ListChecks, Target, Sparkles, PlayCircle, BookOpen } from 'lucide-react';
 import { examService } from '../../services/examService';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 export default function MyClasses() {
   const navigate = useNavigate();
@@ -9,6 +10,8 @@ export default function MyClasses() {
   const [loading, setLoading] = useState(true);
   const [startingId, setStartingId] = useState(null);
   const [error, setError] = useState('');
+  const [showRulesModal, setShowRulesModal] = useState(false);
+  const [pendingExamId, setPendingExamId] = useState(null);
 
   useEffect(() => {
     examService
@@ -27,6 +30,17 @@ export default function MyClasses() {
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal memulai ujian.');
       setStartingId(null);
+    }
+  }
+  function openRulesModal(examId) {
+    setPendingExamId(examId);
+    setShowRulesModal(true);
+  }
+
+  function confirmStartExam() {
+    setShowRulesModal(false);
+    if (pendingExamId) {
+      handleStartExam(pendingExamId);
     }
   }
 
@@ -99,7 +113,7 @@ export default function MyClasses() {
               </div>
 
               <button
-                onClick={() => handleStartExam(exam.id)}
+                onClick={() => openRulesModal(exam.id)}
                 disabled={startingId === exam.id}
                 className="mt-auto w-full flex items-center justify-center gap-2 bg-brand-600 text-white font-semibold py-2.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 transition"
               >
@@ -109,6 +123,23 @@ export default function MyClasses() {
             </div>
           ))}
         </div>
+      )}
+
+      {showRulesModal && (
+        <ConfirmModal
+          title="Harap dibaca terlebih dahulu"
+          rules={[
+            'Pastikan kamu membuka website ini melalui browser (disarankan Chrome).',
+            'Ketika kamu memulai ujian, timer akan berjalan otomatis dan tidak bisa ditunda, jadi siapkan waktu yang tepat.',
+            'Jawaban akan otomatis tersimpan saat kamu memilih opsi atau menulis jawaban.',
+            'Ketika waktu habis, jawaban akan otomatis terkirim.',
+            'Hasil ujian bisa dilihat setelah ujian selesai atau diakhiri.',
+          ]}
+          confirmLabel="Mulai Sekarang"
+          cancelLabel="Batal"
+          onConfirm={confirmStartExam}
+          onClose={() => setShowRulesModal(false)}
+        />
       )}
     </div>
   );

@@ -220,7 +220,7 @@ export default function TransactionStatus() {
   }
 
   async function handleCopyId() {
-    const value = transaction?.order_id || transaction?.id;
+    const value = transaction?.invoice_number || transaction?.midtrans_order_id || transaction?.id;
     if (!value) return;
     try {
       await navigator.clipboard.writeText(String(value));
@@ -328,7 +328,7 @@ export default function TransactionStatus() {
           Riwayat Transaksi
         </Link>
         <span className="text-slate-300">/</span>
-        <span className="text-slate-700 font-medium">Tiket #{transaction.id}</span>
+        <span className="text-slate-700 font-medium">Tiket #{transaction.invoice_number || transaction.id}</span>
       </nav>
 
       {/* Hero status */}
@@ -512,7 +512,7 @@ export default function TransactionStatus() {
                 className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 hover:bg-slate-100 transition group"
               >
                 <span className="font-mono text-sm text-slate-700 truncate">
-                  {transaction.order_id || transaction.id}
+                  {transaction.invoice_number || transaction.midtrans_order_id || transaction.id}
                 </span>
                 {copied ? (
                   <Check size={15} className="text-success-600 shrink-0" />

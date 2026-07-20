@@ -31,8 +31,14 @@
   --color-warning-700: #c2410c;
 
   /* Netral tambahan (info/kedaluwarsa) */
+  --color-neutral-50: #f8fafc;
   --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
   --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
 }
 /* ============================================
    Animasi kustom — dipakai untuk skeleton

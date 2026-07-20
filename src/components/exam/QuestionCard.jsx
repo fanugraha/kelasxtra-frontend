@@ -10,17 +10,29 @@ export default function QuestionCard({
 }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-      <p className="text-sm font-semibold text-brand-600 mb-3">
-        Soal Nomor {questionNumber}
-      </p>
+      <div className="flex items-center gap-2 mb-3">
+        <p className="text-sm font-semibold text-brand-600">
+          Soal Nomor {questionNumber}
+        </p>
+        {question.category && (
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+            {question.category.code ? `${question.category.code} · ${question.category.name}` : question.category.name}
+          </span>
+        )}
+      </div>
 
       <p className="text-slate-800 mb-6 leading-relaxed">
         {question.question_text}
       </p>
 
-      {question.image_url && (
+      {question.media_type === 'audio' && question.media_url && (
+        <audio controls className="w-full mb-6">
+          <source src={question.media_url} />
+        </audio>
+      )}
+      {question.media_type === 'image' && question.media_url && (
         <img
-          src={question.image_url}
+          src={question.media_url}
           alt="Ilustrasi soal"
           className="mb-6 rounded-lg max-w-full"
         />
@@ -50,7 +62,18 @@ export default function QuestionCard({
                 >
                   {LETTERS[idx]}
                 </span>
-                <span className={isSelected ? 'font-medium' : ''}>{option.option_text}</span>
+                <span className="flex-1 flex flex-col gap-2">
+                  {option.image_url && (
+                    <img
+                      src={option.image_url}
+                      alt={`Opsi ${LETTERS[idx]}`}
+                      className="max-h-32 rounded-lg border border-slate-200 object-contain"
+                    />
+                  )}
+                  {option.option_text && (
+                    <span className={isSelected ? 'font-medium' : ''}>{option.option_text}</span>
+                  )}
+                </span>
               </button>
             );
           })}

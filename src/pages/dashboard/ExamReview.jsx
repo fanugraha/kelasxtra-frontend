@@ -242,9 +242,16 @@ export default function ExamReview() {
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold text-slate-500">
-                Soal Nomor {activeIndex + 1} ({current.type === 'pg' ? 'PG' : 'Essay'})
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-slate-500">
+                  Soal Nomor {activeIndex + 1} ({current.type === 'pg' ? 'PG' : 'Essay'})
+                </p>
+                {current.category && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                    {current.category.code ? `${current.category.code} · ${current.category.name}` : current.category.name}
+                  </span>
+                )}
+              </div>
 
               {/* flag-to-review: lets the user mark a question for restudy independent of
                   whether they got it right, e.g. answered correctly but only guessed */}
@@ -296,7 +303,16 @@ export default function ExamReview() {
                     <span className={`font-semibold shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm ${badgeStyle}`}>
                       {String.fromCharCode(65 + i)}
                     </span>
-                    <span className="pt-0.5">{opt.option_text}</span>
+                    <span className="pt-0.5 flex flex-col gap-2">
+                      {opt.image_url && (
+                        <img
+                          src={opt.image_url}
+                          alt={`Opsi ${String.fromCharCode(65 + i)}`}
+                          className="max-h-32 rounded-lg border border-slate-200 object-contain"
+                        />
+                      )}
+                      {opt.option_text && <span>{opt.option_text}</span>}
+                    </span>
                   </div>
                 );
               })}

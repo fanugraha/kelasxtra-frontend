@@ -27,8 +27,8 @@ const statusVisual = {
   pending: {
     icon: 'bg-warning-100 text-warning-600',
     badge: 'bg-warning-50 text-warning-700 border-warning-200',
-    accent: 'bg-warning-500 hover:bg-warning-600',
-    dot: 'bg-warning-500',
+    accent: 'bg-warning-600 hover:bg-warning-700',
+    dot: 'bg-warning-600',
   },
   success: {
     icon: 'bg-success-100 text-success-600',
@@ -40,7 +40,7 @@ const statusVisual = {
     icon: 'bg-danger-100 text-danger-600',
     badge: 'bg-danger-50 text-danger-700 border-danger-200',
     accent: 'bg-brand-600 hover:bg-brand-700',
-    dot: 'bg-danger-500',
+    dot: 'bg-danger-600',
   },
   expired: {
     icon: 'bg-slate-200 text-slate-500',
@@ -111,9 +111,9 @@ function StatusStepper({ status }) {
                   step.state === 'done'
                     ? 'bg-brand-600 text-white'
                     : step.state === 'current'
-                    ? 'bg-warning-500 text-white'
+                    ? 'bg-warning-600 text-white'
                     : step.state === 'bad'
-                    ? 'bg-danger-500 text-white'
+                    ? 'bg-danger-600 text-white'
                     : 'bg-slate-200 text-slate-400'
                 }`}
               >
@@ -293,7 +293,7 @@ export default function TransactionStatus() {
   if (error && !transaction) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <AlertCircle size={32} className="text-danger-500" />
+        <AlertCircle size={32} className="text-danger-600" />
         <p className="text-danger-600">{error}</p>
         <button
           onClick={handleManualRefresh}
@@ -308,7 +308,7 @@ export default function TransactionStatus() {
   if (!transaction) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <AlertCircle size={32} className="text-danger-500" />
+        <AlertCircle size={32} className="text-danger-600" />
         <p className="text-danger-600">Transaksi tidak ditemukan.</p>
       </div>
     );

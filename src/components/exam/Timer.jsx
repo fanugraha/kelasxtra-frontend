@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 function TimeBox({ value, label, tone }) {
   const toneClasses = {
     normal: 'bg-brand-600',
-    warning: 'bg-warning-500',
+    warning: 'bg-warning-600',
     critical: 'bg-danger-600',
   };
   return (

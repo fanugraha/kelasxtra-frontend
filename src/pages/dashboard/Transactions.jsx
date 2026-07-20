@@ -18,7 +18,7 @@ const statusConfig = {
   pending: {
     label: 'Menunggu Pembayaran',
     badge: 'bg-warning-100 text-warning-700',
-    bar: 'bg-warning-500',
+    bar: 'bg-warning-600',
     icon: Clock,
   },
   success: {
@@ -30,7 +30,7 @@ const statusConfig = {
   failed: {
     label: 'Gagal',
     badge: 'bg-danger-100 text-danger-700',
-    bar: 'bg-danger-500',
+    bar: 'bg-danger-600',
     icon: XCircle,
   },
   expired: {
@@ -232,7 +232,7 @@ export default function Transactions() {
               <span className="relative flex items-center justify-center">
                 <Clock size={17} className={stats.pendingCount > 0 ? 'text-warning-600' : 'text-white/80'} />
                 {stats.pendingCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-warning-500 animate-pulse motion-reduce:animate-none" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-warning-600 animate-pulse motion-reduce:animate-none" />
                 )}
               </span>
               <div className="text-left">
@@ -393,7 +393,7 @@ export default function Transactions() {
                       navigate(`/app/transactions/${tx.id}`);
                     }}
                     className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white transition ${
-                      isPending ? 'bg-warning-500 hover:bg-warning-600' : 'bg-brand-600 hover:bg-brand-700'
+                      isPending ? 'bg-warning-600 hover:bg-warning-700' : 'bg-brand-600 hover:bg-brand-700'
                     }`}
                   >
                     {isPending ? (

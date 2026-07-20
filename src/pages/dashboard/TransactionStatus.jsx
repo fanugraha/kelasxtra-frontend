@@ -34,7 +34,7 @@ const statusVisual = {
     icon: 'bg-success-100 text-success-600',
     badge: 'bg-success-50 text-success-700 border-success-200',
     accent: 'bg-brand-600 hover:bg-brand-700',
-    dot: 'bg-success-500',
+    dot: 'bg-success-600',
   },
   failed: {
     icon: 'bg-danger-100 text-danger-600',

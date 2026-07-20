@@ -24,7 +24,7 @@ const statusConfig = {
   success: {
     label: 'Berhasil',
     badge: 'bg-success-100 text-success-700',
-    bar: 'bg-success-500',
+    bar: 'bg-success-600',
     icon: CheckCircle2,
   },
   failed: {

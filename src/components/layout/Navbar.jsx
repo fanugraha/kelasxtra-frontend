@@ -5,6 +5,7 @@ import {
   Package,
   ShoppingCart,
   Award,
+  BadgePercent,
   LogOut,
   Menu,
   X,
@@ -45,6 +46,12 @@ const menuItems = [
       /^\/app\/exams\/[^/]+$/.test(pathname) ||
       pathname.startsWith('/app/exam-attempts/') ||
       pathname.startsWith('/app/classes'),
+  },
+  {
+    to: '/app/promos',
+    label: 'Promo',
+    icon: BadgePercent,
+    isActive: (pathname) => pathname.startsWith('/app/promos'),
   },
 ];
 

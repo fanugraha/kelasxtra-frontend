@@ -249,7 +249,7 @@ function PackagesSkeleton() {
       <div className="h-5 w-32 bg-slate-200 rounded mb-4" />
 
       {/* Grid paket */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="flex flex-wrap gap-5">
         {[1, 2, 3].map((i) => (
           <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 h-56" />
         ))}
@@ -534,7 +534,7 @@ export default function Packages() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="flex flex-wrap gap-5">
           {filtered.map((pkg) => {
             const promoForPkg = promos.find((p) => p.applicable_package_id === pkg.id);
             return (

@@ -17,6 +17,7 @@ import { useOwnedPackageIds } from '../../hooks/useOwnedPackageIds';
 import CategoryModal from '../../components/public/CategoryModal';
 import PackageCard from '../../components/packages/PackageCard';
 import WeeklyLeaderboardHero from '../../components/leaderboard/WeeklyLeaderboardHero';
+import PassingGradeStatus from '../../components/exam/PassingGradeStatus';
 import RankNotificationToast from '../../components/notifications/RankNotificationToast';
 // ─────────────────────────────────────────────────────────────────────────
 // KONTEN STATIS
@@ -876,6 +877,18 @@ export default function Beranda() {
           </div>
         </div>
       )}
+
+      {/* Status Passing Grade Nasional — melengkapi Leaderboard Try Out.
+          Leaderboard jawab "aku rangking berapa" (relatif), ini jawab
+          "apa aku sudah lolos ambang batas minimal" (absolut). Numpang
+          exam_id yang sama dengan WeeklyLeaderboardHero supaya tidak ada
+          request /my-exams/latest-attempted yang duplikat. */}
+      <div className="mb-6">
+        <PassingGradeStatus
+          examId={weeklyLeaderboardExamId}
+          resolvingExamId={resolvingWeeklyLeaderboardExamId}
+        />
+      </div>
 
       {/* Leaderboard Try Out — diringkas jadi 1 baris (sebelumnya card
           besar yang seringkali kosong karena berbasis jadwal batch, bukan

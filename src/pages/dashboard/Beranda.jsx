@@ -671,6 +671,18 @@ export default function Beranda() {
         ))}
       </div>
 
+      {/* Status Passing Grade Nasional — melengkapi Leaderboard Try Out.
+          Leaderboard jawab "aku rangking berapa" (relatif), ini jawab
+          "apa aku sudah lolos ambang batas minimal" (absolut). Numpang
+          exam_id yang sama dengan WeeklyLeaderboardHero supaya tidak ada
+          request /my-exams/latest-attempted yang duplikat. */}
+      <div className="mb-6">
+        <PassingGradeStatus
+          examId={weeklyLeaderboardExamId}
+          resolvingExamId={resolvingWeeklyLeaderboardExamId}
+        />
+      </div>
+
       {/* Lanjutkan Belajar — hanya tampil kalau ketemu attempt yang sedang
           berjalan. Progress bar dibuat "indeterminate" (bukan angka %)
           karena API belum expose jumlah soal terjawab — lihat TODO(API)
@@ -877,18 +889,6 @@ export default function Beranda() {
           </div>
         </div>
       )}
-
-      {/* Status Passing Grade Nasional — melengkapi Leaderboard Try Out.
-          Leaderboard jawab "aku rangking berapa" (relatif), ini jawab
-          "apa aku sudah lolos ambang batas minimal" (absolut). Numpang
-          exam_id yang sama dengan WeeklyLeaderboardHero supaya tidak ada
-          request /my-exams/latest-attempted yang duplikat. */}
-      <div className="mb-6">
-        <PassingGradeStatus
-          examId={weeklyLeaderboardExamId}
-          resolvingExamId={resolvingWeeklyLeaderboardExamId}
-        />
-      </div>
 
       {/* Leaderboard Try Out — diringkas jadi 1 baris (sebelumnya card
           besar yang seringkali kosong karena berbasis jadwal batch, bukan

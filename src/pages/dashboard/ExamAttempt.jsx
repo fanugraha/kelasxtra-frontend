@@ -4,6 +4,7 @@ import { examService } from '../../services/examService';
 import QuestionCard from '../../components/exam/QuestionCard';
 import Timer from '../../components/exam/Timer';
 import ProgressBar from '../../components/exam/ProgressBar';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 function ExamAttemptSkeleton() {
     return (
@@ -63,48 +64,11 @@ export default function ExamAttempt() {
     const [loading, setLoading] = useState(true);
     const [finishing, setFinishing] = useState(false);
     const [error, setError] = useState('');
+    const [showFinishModal, setShowFinishModal] = useState(false);
 
     const saveTimeoutRef = useRef(null);
     const indexStorageKey = `exam_current_index_${attemptId}`;
     const flagStorageKey = `exam_flagged_${attemptId}`;
-
-    useEffect(() => {
-        loadAttempt();
-    }, [attemptId]);
-
-    useEffect(() => {
-        if (orderedQuestions.length > 0) {
-            localStorage.setItem(indexStorageKey, String(currentIndex));
-        }
-    }, [currentIndex, orderedQuestions.length, indexStorageKey]);
-
-    useEffect(() => {
-        if (orderedQuestions.length > 0) {
-            localStorage.setItem(flagStorageKey, JSON.stringify(Array.from(flagged)));
-        }
-    }, [flagged, orderedQuestions.length, flagStorageKey]);
-
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.hidden && attempt?.status === 'in_progress') {
-                examService.recordTabSwitch(attemptId).catch(() => { });
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [attemptId, attempt?.status]);
-
-    async function loadAttempt() {
-        try {
-            setLoading(true);
-            const data = await examService.getAttempt(attemptId);
-            applyAttemptData(data);
-        } catch (err) {
-            setError('Gagal memuat ujian. Attempt mungkin tidak ditemukan atau bukan milik Anda.');
-        } finally {
-            setLoading(false);
-        }
-    }
 
     function applyAttemptData(data) {
         setAttempt(data);
@@ -164,6 +128,45 @@ export default function ExamAttempt() {
         }
     }
 
+    async function loadAttempt() {
+        try {
+            setLoading(true);
+            const data = await examService.getAttempt(attemptId);
+            applyAttemptData(data);
+        } catch {
+            setError('Gagal memuat ujian. Attempt mungkin tidak ditemukan atau bukan milik Anda.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        loadAttempt();
+    }, [attemptId]);
+
+    useEffect(() => {
+        if (orderedQuestions.length > 0) {
+            localStorage.setItem(indexStorageKey, String(currentIndex));
+        }
+    }, [currentIndex, orderedQuestions.length, indexStorageKey]);
+
+    useEffect(() => {
+        if (orderedQuestions.length > 0) {
+            localStorage.setItem(flagStorageKey, JSON.stringify(Array.from(flagged)));
+        }
+    }, [flagged, orderedQuestions.length, flagStorageKey]);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden && attempt?.status === 'in_progress') {
+                examService.recordTabSwitch(attemptId).catch(() => { });
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [attemptId, attempt?.status]);
+
     const currentQuestion = orderedQuestions[currentIndex];
     const answeredQuestionIds = new Set(Object.keys(answers).map(Number));
     const answeredCount = answeredQuestionIds.size;
@@ -219,16 +222,12 @@ export default function ExamAttempt() {
         }
     }, [attemptId, navigate, indexStorageKey, flagStorageKey, attempt]);
 
-    async function handleFinish() {
-        const unanswered = totalCount - answeredCount;
-        const confirmMsg =
-            unanswered > 0
-                ? `Masih ada ${unanswered} soal yang belum dijawab. Yakin ingin menyelesaikan ujian sekarang? Jawaban tidak bisa diubah lagi setelah ini.`
-                : 'Yakin ingin menyelesaikan ujian sekarang? Jawaban tidak bisa diubah lagi setelah ini.';
+    function handleFinish() {
+        setShowFinishModal(true);
+    }
 
-        if (!confirm(confirmMsg)) {
-            return;
-        }
+    async function performFinish() {
+        setShowFinishModal(false);
         setFinishing(true);
         try {
             if (saveTimeoutRef.current) {
@@ -245,7 +244,7 @@ export default function ExamAttempt() {
                 ? `/app/exams/${attempt.exam_id}?bank=${attempt.bank_id}`
                 : `/app/exams/${attempt.exam_id}`;
             navigate(backUrl, { replace: true });
-        } catch (err) {
+        } catch {
             setError('Gagal menyelesaikan ujian. Coba lagi.');
             setFinishing(false);
         }
@@ -275,6 +274,11 @@ export default function ExamAttempt() {
 
     const currentAnswer = answers[currentQuestion.id];
     const isCurrentFlagged = flagged.has(currentQuestion.id);
+    const unansweredCount = totalCount - answeredCount;
+    const finishMessage =
+        unansweredCount > 0
+            ? `Masih ada ${unansweredCount} soal yang belum dijawab. Yakin ingin menyelesaikan ujian sekarang? Jawaban tidak bisa diubah lagi setelah ini.`
+            : 'Yakin ingin menyelesaikan ujian sekarang? Jawaban tidak bisa diubah lagi setelah ini.';
 
     return (
         <div className="min-h-screen bg-slate-50 py-8 px-6">
@@ -369,6 +373,19 @@ export default function ExamAttempt() {
                     </button>
                 </div>
             </div>
+
+            {showFinishModal && (
+                <ConfirmModal
+                    title="Akhiri Ujian"
+                    message={finishMessage}
+                    confirmLabel="Ya, Akhiri Ujian"
+                    cancelLabel="Batal"
+                    confirmDisabled={finishing}
+                    confirmColor="bg-danger-600 hover:bg-danger-700"
+                    onConfirm={performFinish}
+                    onClose={() => setShowFinishModal(false)}
+                />
+            )}
         </div>
     );
 }

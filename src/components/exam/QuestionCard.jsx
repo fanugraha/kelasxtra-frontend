@@ -21,9 +21,10 @@ export default function QuestionCard({
         )}
       </div>
 
-      <p className="text-slate-800 mb-6 leading-relaxed">
-        {question.question_text}
-      </p>
+      <div
+          className="question-content text-slate-800 mb-6 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: question.question_text }}
+        />
 
       {question.media_type === 'audio' && question.media_url && (
         <audio controls className="w-full mb-6">

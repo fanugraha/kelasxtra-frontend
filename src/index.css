@@ -1,3 +1,24 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 @import "./styles/theme.css";
+
+/* Render HTML list (hasil konversi numbering soal) dengan tampilan yang benar */
+.question-content ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+}
+.question-content ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+}
+.question-content li {
+  margin-bottom: 0.25rem;
+}
+.question-content p {
+  margin-bottom: 0.5rem;
+}
+.question-content p:last-child {
+  margin-bottom: 0;
+}

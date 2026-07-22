@@ -277,7 +277,10 @@ export default function ExamReview() {
               <img src={current.media_url} alt="" className="max-w-full rounded-lg mb-4" />
             )}
 
-            <p className="text-slate-800 mb-5">{current.question_text}</p>
+            <div
+                className="question-content text-slate-800 mb-5"
+                dangerouslySetInnerHTML={{ __html: current.question_text }}
+              />
 
             <div className="space-y-2">
               {current.options.map((opt, i) => {

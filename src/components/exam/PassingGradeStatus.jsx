@@ -150,7 +150,8 @@ export default function PassingGradeStatus({ examId, resolvingExamId }) {
         <p className="text-xs text-neutral-500 mt-5 leading-relaxed">
           Ambang batas mengacu pada Kepmen PANRB No. 321 Tahun 2024. Nilai ini
           dari percobaan latihan soal terakhirmu, terpisah dari ranking di
-          Leaderboard Mingguan.
+          Leaderboard Mingguan. Status ini menunjukkan hasil latihanmu di
+          Kelasxtra, bukan jaminan kelulusan pada seleksi CPNS resmi.
         </p>
       </div>
     </div>

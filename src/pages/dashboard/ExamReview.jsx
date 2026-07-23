@@ -158,20 +158,23 @@ export default function ExamReview() {
     });
   };
 
-  // weakest topic breakdown — only computed when questions carry a `topic` field,
-  // so this degrades gracefully for exams that don't tag topics
+  // weakest topic breakdown — dihitung dari `sub_topic` (Topic model, granular
+  // per sub-materi), BUKAN `topic` (itu nama kategori/section, mis. "Tes
+  // Wawasan Kebangsaan" -- hampir selalu sama untuk semua soal dalam 1 exam,
+  // jadi tidak berguna sebagai breakdown). Degradasi otomatis kalau soal
+  // belum ditag sub_topic sama sekali (lihat hasSubTopics).
   const topicInsight = useMemo(() => {
     if (!data) return null;
     const { questions } = data;
-    const hasTopics = questions.some((q) => q.topic);
-    if (!hasTopics) return null;
+    const hasSubTopics = questions.some((q) => q.sub_topic);
+    if (!hasSubTopics) return null;
 
     const byTopic = {};
     questions.forEach((q) => {
-      const topic = q.topic || 'Lainnya';
-      if (!byTopic[topic]) byTopic[topic] = { wrong: 0, total: 0 };
-      byTopic[topic].total += 1;
-      if (q.selected_option_id != null && !q.is_correct) byTopic[topic].wrong += 1;
+      const topicName = q.sub_topic?.name || 'Belum Ditag';
+      if (!byTopic[topicName]) byTopic[topicName] = { wrong: 0, total: 0 };
+      byTopic[topicName].total += 1;
+      if (q.selected_option_id != null && !q.is_correct) byTopic[topicName].wrong += 1;
     });
 
     const weakest = Object.entries(byTopic)
@@ -249,6 +252,11 @@ export default function ExamReview() {
                 {current.category && (
                   <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                     {current.category.code ? `${current.category.code} · ${current.category.name}` : current.category.name}
+                  </span>
+                )}
+                {current.sub_topic && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-50 text-brand-600">
+                    {current.sub_topic.name}
                   </span>
                 )}
               </div>

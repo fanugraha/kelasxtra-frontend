@@ -17,7 +17,7 @@ import { useOwnedPackageIds } from '../../hooks/useOwnedPackageIds';
 import CategoryModal from '../../components/public/CategoryModal';
 import PackageCard from '../../components/packages/PackageCard';
 import WeeklyLeaderboardHero from '../../components/leaderboard/WeeklyLeaderboardHero';
-import PassingGradeStatus from '../../components/exam/PassingGradeStatus';
+import ProgressSummaryWidget from '../../components/exam/ProgressSummaryWidget';
 import RankNotificationToast from '../../components/notifications/RankNotificationToast';
 // ─────────────────────────────────────────────────────────────────────────
 // KONTEN STATIS
@@ -671,17 +671,16 @@ export default function Beranda() {
         ))}
       </div>
 
-      {/* Status Passing Grade Nasional — melengkapi Leaderboard Try Out.
-          Leaderboard jawab "aku rangking berapa" (relatif), ini jawab
-          "apa aku sudah lolos ambang batas minimal" (absolut). Numpang
-          exam_id yang sama dengan WeeklyLeaderboardHero supaya tidak ada
-          request /my-exams/latest-attempted yang duplikat. */}
-      <div className="mb-6">
-        <PassingGradeStatus
-          examId={weeklyLeaderboardExamId}
-          resolvingExamId={resolvingWeeklyLeaderboardExamId}
-        />
-      </div>
+      {/* Progress Belajar — widget gabungan Status Passing Grade + Peta
+          Kekuatan & Kelemahan (lihat ProgressSummaryWidget.jsx). Collapsed
+          by default menampilkan ringkasan satu baris; detail lengkap
+          (2 tab) tinggal expand di tempat, supaya Beranda tidak penuh
+          dengan dua card besar berdiri sendiri seperti sebelumnya. */}
+      <ProgressSummaryWidget
+        examId={weeklyLeaderboardExamId}
+        resolvingExamId={resolvingWeeklyLeaderboardExamId}
+        programId={preferredProgramId}
+      />
 
       {/* Lanjutkan Belajar — hanya tampil kalau ketemu attempt yang sedang
           berjalan. Progress bar dibuat "indeterminate" (bukan angka %)

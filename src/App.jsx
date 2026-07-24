@@ -18,6 +18,7 @@ import ExamDetail from './pages/dashboard/ExamDetail';
 import Packages from './pages/dashboard/Packages';
 import PromoList from './pages/dashboard/PromoList';
 import PackageDetail from './pages/dashboard/PackageDetail';
+import AnalisisPerforma from './pages/dashboard/AnalisisPerforma';
 import PackageExams from './pages/dashboard/PackageExams';
 import TransactionStatus from './pages/dashboard/TransactionStatus';
 import MyPackages from './pages/dashboard/MyPackages';
@@ -54,6 +55,7 @@ function App() {
             <Route path="packages" element={<Packages />} />
             <Route path="promos" element={<PromoList />} />
             <Route path="packages/:packageId" element={<PackageDetail />} />
+            <Route path="analisis-performa" element={<AnalisisPerforma />} />
             <Route path="packages/:packageId/exams" element={<PackageExams />} />
             <Route path="exams/:examId" element={<ExamDetail />} />
             <Route path="exam-attempts/:attemptId/review" element={<ExamReview />} />

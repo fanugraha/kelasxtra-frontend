@@ -1,3 +1,4 @@
+import { formatQuestionText } from '../../lib/formatQuestionText';
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 export default function QuestionCard({
@@ -23,7 +24,7 @@ export default function QuestionCard({
 
       <div
           className="question-content text-slate-800 mb-6 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: question.question_text }}
+          dangerouslySetInnerHTML={{ __html: formatQuestionText(question.question_text) }}
         />
 
       {question.media_type === 'audio' && question.media_url && (

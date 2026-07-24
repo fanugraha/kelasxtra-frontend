@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Bookmark, TrendingUp, Sparkles } from 'lucide-react';
 import { examService } from '../../services/examService';
+import { formatQuestionText } from '../../lib/formatQuestionText';
 
 const FILTERS = [
   { key: 'all', label: 'Semua' },
@@ -287,7 +288,7 @@ export default function ExamReview() {
 
             <div
                 className="question-content text-slate-800 mb-5"
-                dangerouslySetInnerHTML={{ __html: current.question_text }}
+                dangerouslySetInnerHTML={{ __html: formatQuestionText(current.question_text) }}
               />
 
             <div className="space-y-2">

@@ -677,8 +677,6 @@ export default function Beranda() {
           (2 tab) tinggal expand di tempat, supaya Beranda tidak penuh
           dengan dua card besar berdiri sendiri seperti sebelumnya. */}
       <ProgressSummaryWidget
-        examId={weeklyLeaderboardExamId}
-        resolvingExamId={resolvingWeeklyLeaderboardExamId}
         programId={preferredProgramId}
       />
 
